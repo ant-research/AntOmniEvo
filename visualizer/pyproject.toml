@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ant-omnievo-visualizer"
+version = "0.1.0"
+description = "Flask backend for the AntOmniEvo visualization frontend"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["../LICENSE"]
+dependencies = [
+    "ant-omnievo",
+    "flask>=3.0",
+    "flask-cors>=4.0",
+]
+
+[project.scripts]
+antomnievo-visualizer = "antomnievo_visualizer.server:main"
+antomnievo-visualizer-manage = "antomnievo_visualizer.manage:main"
+
+# Resolve the unpublished ant-omnievo dependency to the local repo root in editable installs.
+[tool.uv.sources]
+ant-omnievo = { path = "..", editable = true }
+
+[tool.setuptools.packages.find]
+include = ["antomnievo_visualizer*"]

@@ -1,0 +1,58 @@
+# Build configuration — pure Python package, no compiled extensions.
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ant-omnievo"
+version = "0.1.0"
+description = "Auto-optimization framework for AI agent systems"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+# Core runtime dependencies only. Scenarios that need more (RAG, visualizer)
+# pull them in via the optional-dependencies extras below.
+dependencies = [
+    "pydantic>=2.0",
+    "httpx>=0.24.0",
+    "tenacity>=8.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Test/dev tooling.
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+# Agentic RAG / LangGraph scenarios. An experimental scenario.
+rag = [
+    "langchain-core>=0.3.0",
+    "langchain-openai>=1.2.1",
+    "langgraph>=0.2.0",
+    "openai>=1.0.0",
+    "httpcore>=1.0.0",
+]
+# Visualizer is a separate package under ./visualizer.
+#   uv:  uv pip install -e ".[visualizer]"
+#        → uv reads [tool.uv.sources] below and installs from local path.
+#   pip: pip install -e ./visualizer
+#        → pip cannot resolve the unpublished name, install the subpackage directly.
+visualizer = [
+    "ant-omnievo-visualizer",
+]
+
+# Tell uv where to find the (unpublished) visualizer sub-package.
+[tool.uv.sources]
+ant-omnievo-visualizer = { path = "visualizer", editable = true }
+
+# Console scripts. These are invoked INSIDE the proposer agent's sandbox, not by
+# end users — the proposer calls `validate-analysis` to self-check its RunAnalysis
+# output and `append-changelog` to record each spec diff. Registering them here
+# makes both binaries discoverable on PATH within the sandbox.
+[project.scripts]
+validate-analysis = "antomnievo.proposer.scripts.validate_analysis:main"
+append-changelog = "antomnievo.proposer.scripts.append_changelog:main"
+
+[tool.setuptools.packages.find]
+include = ["antomnievo*"]

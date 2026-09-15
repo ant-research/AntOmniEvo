@@ -1,0 +1,84 @@
+# Publishes the `ant-omnievo` and `ant-omnievo-visualizer` Python packages to
+# Ant's internal package source. See README.md. Fill in `approvers` before first
+# release; `ant-omnievo-visualizer` depends on `ant-omnievo` — publish
+# `ant-omnievo` first.
+
+version: "2.0"
+stages:
+- Build & Publish to Test Repo
+- Verify & Confirm
+- Pre-Publish to Prod Check
+- Publish to Prod Repo
+
+jobs:
+  build:
+    stage: Build & Publish to Test Repo
+    id: build
+    component: pypi-artifact-uploader
+    inputs:
+      registry: "https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/"  # pre-prod
+      buildCmd: |
+        BUILD_OUTPUT_DIR="${ACB_BUILD_DIR}/code-repo/dist"
+        export PIP_INDEX_URL='https://pypi.antfin-inc.com/simple/'
+        cd ${ACB_BUILD_DIR}/code-repo
+        python -m build --outdir=$BUILD_OUTPUT_DIR
+
+  build-visualizer:
+    stage: Build & Publish to Test Repo
+    id: build-visualizer
+    component: pypi-artifact-uploader
+    inputs:
+      registry: "https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/"  # pre-prod
+      buildCmd: |
+        BUILD_OUTPUT_DIR="${ACB_BUILD_DIR}/code-repo/dist"
+        export PIP_INDEX_URL='https://pypi.antfin-inc.com/simple/'
+        cd ${ACB_BUILD_DIR}/code-repo/visualizer
+        python -m build --outdir=$BUILD_OUTPUT_DIR
+
+  # manual verification gate (no job)
+
+  select-artifact:
+    id: check
+    stage: Pre-Publish to Prod Check
+    component: artifact-transfer-check
+    inputs:
+      artifactsConfigs:
+        - artifacts: ${{jobs.build.outputs.artifacts}}
+          antArtifactRepo: simple  # production library
+
+  select-visualizer-artifact:
+    id: check-visualizer
+    stage: Pre-Publish to Prod Check
+    component: artifact-transfer-check
+    inputs:
+      artifactsConfigs:
+        - artifacts: ${{jobs.build-visualizer.outputs.artifacts}}
+          antArtifactRepo: simple  # production library
+
+  sync-to-prod:
+    stage: Publish to Prod Repo
+    component: ant-artifact-transfer
+    inputs:
+      transferArtifacts: ${{jobs.check.outputs.transferArtifacts}}
+    config:
+      beforeExecute:
+        isAutoSkip: ${{jobs.check.outputs.selectedCount}} = 0
+        confirm:
+          buttonName: Confirm Publish ant-omnievo to Prod Repo
+          approvers:  # release-role domain accounts
+            - lyuyubin.lyb
+            - hanpu.mwx
+
+  sync-visualizer-to-prod:
+    stage: Publish to Prod Repo
+    component: ant-artifact-transfer
+    inputs:
+      transferArtifacts: ${{jobs.check-visualizer.outputs.transferArtifacts}}
+    config:
+      beforeExecute:
+        isAutoSkip: ${{jobs.check-visualizer.outputs.selectedCount}} = 0
+        confirm:
+          buttonName: Confirm Publish ant-omnievo-visualizer to Prod Repo
+          approvers:  # release-role domain accounts (separate per-package role)
+            - lyuyubin.lyb
+            - hanpu.mwx

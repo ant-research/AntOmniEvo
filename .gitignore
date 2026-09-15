@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+**/workspace/
+.ruff_cache/
+.vscode/
+.pytest_cache/
+*.egg-info/
+.claude/
+.tmp/
+CLAUDE.md
+task/
+.DS_Store
+config/
+
+# Visualizer (前端)
+visualizer/node_modules/
+visualizer/dist/
+visualizer/dist-ssr/
+visualizer/*.local
+docs-local/
+tasks/
+docs/idea
