@@ -145,8 +145,8 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({
 
       {detail && !detailLoading && (() => {
         const dataDir = meta.data_dir || '';
-        const specDir = meta.spec_dir || '';
-        const specFiles = (Array.isArray(detail.spec_files) ? detail.spec_files : []) as string[];
+        const artifactDir = meta.artifact_dir || '';
+        const artifactFiles = (Array.isArray(detail.artifact_files) ? detail.artifact_files : []) as string[];
 
         const systemRunFiles = Object.values(
           (detail.system_runs ?? {}) as Record<string, string[]>,
@@ -165,9 +165,9 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({
 
         return (
           <>
-            {specFiles.length > 0 && (
-              <CollapsibleSection title={`Spec Files · ${specFiles.length}`} defaultOpen={false}>
-                <FileTree files={specFiles} root={specDir} defaultOpenDepth={1} onFileClick={setViewingFile} />
+            {artifactFiles.length > 0 && (
+              <CollapsibleSection title={`Artifact Files · ${artifactFiles.length}`} defaultOpen={false}>
+                <FileTree files={artifactFiles} root={artifactDir} defaultOpenDepth={1} onFileClick={setViewingFile} />
               </CollapsibleSection>
             )}
 

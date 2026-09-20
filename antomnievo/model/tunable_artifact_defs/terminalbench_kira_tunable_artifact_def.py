@@ -1,20 +1,20 @@
-"""Spec schema definition for the Terminus-KIRA agent on Terminal-Bench 2.
+"""Tunable-artifact schema definition for the Terminus-KIRA agent on Terminal-Bench 2.
 
-The KIRA spec is "agent code + skill" — the agent's Python code
-lives IN the spec dir so the proposer can mutate it as part of evolution.
+The KIRA tunable artifacts are "agent code + skill" — the agent's Python code
+lives IN the artifact dir so the proposer can mutate it as part of evolution.
 """
 
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _REFERENCES_DIR_DESCRIPTION,
     _SCRIPTS_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-# ── Top-level spec dir ──────────────────────────────────────────────────────
+# ── Top-level artifact dir ──────────────────────────────────────────────────────
 
-_KIRA_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the Terminus-KIRA agent's full configurable behavior:
+_KIRA_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the Terminus-KIRA agent's full configurable behavior:
 both the agent's Python code (tool definitions, middleware overrides, context
 engineering) and its skill (prompt-level guidance). The proposer mutates files
 here to evolve the agent.
@@ -41,7 +41,7 @@ extract the underlying class of mistakes and prevent the whole class.
 
 ## Choosing the right layer: agent code, skill, references, scripts
 
-The KIRA spec has four layers with increasing determinism. **Prefer the most
+The KIRA tunable artifacts have four layers with increasing determinism. **Prefer the most
 deterministic layer that fits the problem.**
 
 - **Agent code** (agent/kira_agent.py) — the MOST deterministic layer. Tool
@@ -184,9 +184,9 @@ when the fix requires knowledge the agent lacks.
 
 # ── Schema ──────────────────────────────────────────────────────────────────
 
-TERMINALBENCH_KIRA_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_KIRA_SPEC_DIR_DESCRIPTION,
+TERMINALBENCH_KIRA_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_KIRA_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FolderSchema(
             name="agent",

@@ -173,7 +173,7 @@ class TerminalBenchSystem(System):
 
     ``tbtest generate`` is a thin wrapper around ``harbor run`` that also
     rewrites the Harbor job config to mount ``skill/``, ``memory/``, and
-    ``extension/`` from ``--spec-dir`` — so per-rollout spec swap is a
+    ``extension/`` from ``--artifact-dir`` — so per-rollout artifact swap is a
     single flag change (no per-task Dockerfile mutation needed, unlike the
     dp_text2sql pipeline).
 
@@ -242,10 +242,10 @@ class TerminalBenchSystem(System):
                 If None, ``tbtest generate``'s built-in default is used.
             agent_import_path: Optional ``--agent`` override (agent import path).
                 Defaults to ``agent.kira_agent:AgentHarness``, which resolves
-                against the candidate spec dir itself (laid out as
-                ``<cand>/spec/agent/kira_agent.py``) — ``generate`` puts the
-                spec dir on ``PYTHONPATH``. Pass ``spec.kira.agent.kira_agent:
-                AgentHarness`` to use the repo-root ``spec/kira`` agent instead.
+                against the candidate tunable-artifact dir itself (laid out as
+                ``<cand>/artifact/agent/kira_agent.py``) — ``generate`` puts the
+                tunable-artifact dir on ``PYTHONPATH``. Pass ``artifact.kira.agent.kira_agent:
+                AgentHarness`` to use the repo-root ``artifact/kira`` agent instead.
             force_build: Pass ``--force-build`` to rebuild task Docker images.
             debug: Pass ``--debug`` to enable Harbor debug logging.
         """
@@ -285,7 +285,7 @@ class TerminalBenchSystem(System):
         """Run multiple Terminal-Bench tasks via ``tbtest generate``.
 
         Args:
-            candidate_meta: Candidate metadata (``spec_dir`` becomes ``--spec-dir``).
+            candidate_meta: Candidate metadata (``artifact_dir`` becomes ``--artifact-dir``).
             data_list: Data instances to run.
             job_name: Harbor ``--job-name`` (also names the output subdir).
             dataset_dir: Terminal-Bench dataset root (``-p`` flag).
@@ -316,7 +316,7 @@ class TerminalBenchSystem(System):
                 await self._run_via_generate(
                     dataset_dir=dataset_dir,
                     output_dir=output_dir,
-                    spec_dir=candidate_meta.spec_dir,
+                    artifact_dir=candidate_meta.artifact_dir,
                     job_name=job_name,
                     include_tasks=task_ids,
                     env=env,
@@ -385,7 +385,7 @@ class TerminalBenchSystem(System):
         self,
         dataset_dir: str,
         output_dir: str,
-        spec_dir: str | None,
+        artifact_dir: str | None,
         job_name: str,
         include_tasks: list[str] | None = None,
         env: dict[str, str] | None = None,
@@ -399,8 +399,8 @@ class TerminalBenchSystem(System):
             "-n", str(self.concurrency),
             "-k", str(self.attempts),
         ]
-        if spec_dir:
-            cmd.extend(["--spec-dir", spec_dir])
+        if artifact_dir:
+            cmd.extend(["--artifact-dir", artifact_dir])
         if self.job_config_yaml:
             cmd.extend(["-c", self.job_config_yaml])
         if self.agent_import_path:

@@ -31,7 +31,7 @@ _VAGUE_PHRASES = [
     "failed to answer correctly",
 ]
 
-_REQUIRED_ACTION_FIELDS = ("file", "operation", "spec_issue", "change", "resolves")
+_REQUIRED_ACTION_FIELDS = ("file", "operation", "artifact_issue", "change", "resolves")
 
 
 def _is_vague(value: str) -> str | None:

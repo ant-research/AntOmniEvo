@@ -1115,20 +1115,20 @@
   100% { background: rgba(56, 189, 248, 0.18); }
 }
 
-.spec-tree {
+.artifact-tree {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 6px;
   padding: 6px 4px;
   font-size: 0.82rem;
 }
 
-.spec-tree-empty {
+.artifact-tree-empty {
   color: #888;
   font-style: italic;
   padding: 8px 12px;
 }
 
-.spec-tree-row {
+.artifact-tree-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1140,16 +1140,16 @@
   transition: background 0.1s;
 }
 
-.spec-tree-row.dir {
+.artifact-tree-row.dir {
   cursor: pointer;
   color: #ffd97a;
 }
 
-.spec-tree-row:hover {
+.artifact-tree-row:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.spec-tree-twisty {
+.artifact-tree-twisty {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1158,24 +1158,24 @@
   font-size: 0.7rem;
 }
 
-.spec-tree-twisty.leaf {
+.artifact-tree-twisty.leaf {
   color: #444;
 }
 
-.spec-tree-icon {
+.artifact-tree-icon {
   font-size: 0.85rem;
   line-height: 1;
 }
 
-.spec-tree-name {
+.artifact-tree-name {
   font-size: 0.82rem;
 }
 
-.spec-tree-row.clickable {
+.artifact-tree-row.clickable {
   cursor: pointer;
 }
 
-.spec-tree-row.clickable:hover {
+.artifact-tree-row.clickable:hover {
   background: rgba(56, 189, 248, 0.14);
   color: #7dd3fc;
 }

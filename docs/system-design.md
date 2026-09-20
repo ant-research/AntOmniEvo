@@ -5,17 +5,17 @@
 ## 1. One-sentence mental model
 
 ```
-(trajectory, output) = System(B, x)                          # your system runs with spec B on data x
+(trajectory, output) = System(B, x)                          # your system runs with tunable artifacts B on data x
 (score, reason)      = Evaluator(output)                     # score it
 B'                   = Proposer(B, runs, scores)             # a coding agent reads failures + scores, rewrites B
 B_{next}             = EvolutionAlgorithm.choose(B, B', …)   # keep winners, drop losers
 ```
 
-One **iteration (slot)** = pick a parent → mutate a child spec off it → roll out parent and child on one training batch → compare scores → if the child clears the bar, validate on the val set and accept. A classic "1+1 evolution with Pareto-frontier maintenance" structure.
+One **iteration (slot)** = pick a parent → mutate child tunable artifacts off it → roll out parent and child on one training batch → compare scores → if the child clears the bar, validate on the val set and accept. A classic "1+1 evolution with Pareto-frontier maintenance" structure.
 
 ```mermaid
 flowchart TD
-    Start([initial spec]) --> Root["create_root(initial_spec_dir) → root candidate baseline (val)"]
+    Start([initial artifacts]) --> Root["create_root(initial_artifacts_dir) → root candidate baseline (val)"]
     Root --> Loop{Budget not exhausted and pool non-empty?}
     Loop -- yes --> Select["EA.select(1) → cid (state: pending → evolving)"]
     Select --> B1
@@ -24,7 +24,7 @@ flowchart TD
 
     subgraph Evolve ["_evolve_one(cid) — one slot"]
         direction TB
-        B1["roll out parent (batch) → old_scores"] --> B2["Proposer.propose → mutate child spec"]
+        B1["roll out parent (batch) → old_scores"] --> B2["Proposer.propose → mutate child tunable artifacts"]
         B2 --> B3["roll out child (batch) → new_scores"]
         B3 --> Chk{"improvement clears bar<br/>or perfect?"}
         Chk -- yes --> Acc["accept child"]
@@ -36,7 +36,7 @@ flowchart TD
         Rej --> Pareto
     end
 
-    Loop -- no --> Best(["get_best_candidate() → best spec + changelog"])
+    Loop -- no --> Best(["get_best_candidate() → best tunable artifacts + changelog"])
 ```
 
 ## 2. Top-level layout
@@ -51,10 +51,10 @@ antomnievo/
 ├── dataset/             # reference DataInst subclasses + loaders
 ├── store/               # LocalCandidateStore: filesystem-backed candidate storage
 ├── evolution_algorithm/ # evolution algorithms: ParetoFrontierEvolutionAlgorithm
-├── model/               # pydantic models: CandidateMeta / RunAnalysis / ChangeLogEntry / Budget / spec_schema …
+├── model/               # pydantic models: CandidateMeta / RunAnalysis / ChangeLogEntry / Budget / tunable_artifact_schema …
 └── common/              # config / theta_llm / utils / tool(rag)
 visualizer/              # standalone React + Flask visualizer (separate package `ant-omnievo-visualizer`)
-tasks/                   # initial spec directories
+tasks/                   # initial tunable-artifact directories
 ```
 
 ## 3. Inside a slot
@@ -89,7 +89,7 @@ sequenceDiagram
     Eval-->>Slot: old_scores then save run
 
     Slot->>P: propose parent new_id
-    Note over P: phase1 analyze agents in parallel<br/>phase2 mutate agent edits spec then append changelog
+    Note over P: phase1 analyze agents in parallel<br/>phase2 mutate agent edits the tunable artifacts then appends changelog
     P-->>Slot: success
 
     Slot->>Sys: run_batch child batch
@@ -128,7 +128,7 @@ sequenceDiagram
 ```
 {workspace_dir}/
 ├── candidates/{candidate_id}/           # 12-hex id (uuid4().hex[:12])
-│   ├── spec/                             # the mutable spec tree (Phase-2 agent's cwd)
+│   ├── artifact/                             # the mutable tunable-artifact tree (Phase-2 agent's cwd)
 │   └── data/
 │       ├── meta.json                     # CandidateMeta
 │       ├── summary.json                  # CandidateSummary (val scores)
@@ -146,16 +146,16 @@ sequenceDiagram
     └── parameters.jsonl                  # one line per optimizer launch (append-only)
 ```
 
-Key `CandidateMeta` fields: `candidate_id` / `spec_dir` / `data_dir` / `parent_id` / `children_ids` / `created_at` / `state` / `epoch` / `dataset_index` / `generation` / `reflection_depth`.
+Key `CandidateMeta` fields: `candidate_id` / `artifact_dir` / `data_dir` / `parent_id` / `children_ids` / `created_at` / `state` / `epoch` / `dataset_index` / `generation` / `reflection_depth`.
 
 State machine: `pending` (selectable) ↔ `evolving` (occupying a slot) ↔ `unavailable` (just-created / eliminated). Changelog is append-only, child inherits parent, so lineage accumulates down the inheritance chain; resume relies on the state machine + startup recovery (`reset_evolving_to_pending` + `cleanup_unavailable` policy). No enforced transition guard; transitions are driven by the main loop.
 
 ## 5. Proposer: two-phase flow (an agent optimizing a system)
 
-- **Phase 1 — Analyze** (`_analyze`): `find_unanalyzed_runs` finds runs newer than the latest analysis, grouped by `data_id`; **one coding agent per `data_id` in parallel** (cwd = parent's `data_dir`), reading the spec (read-only) + run files, producing one `RunAnalysis` (`trajectory_analysis` observations + `actions` prescriptions), then `validate-analysis` self-check. Per-`data_id` trajectories are merged and saved to `analysis/trajectory/{new_id}.json`.
-- **Phase 2 — Mutate** (`_mutate`): one coding agent (cwd = child's `spec_dir`) reads all analyses, dedups / resolves contradictions, edits files in place, recording `mtime_before`; the Phase-2 trajectory is persisted **before** any error short-circuit (`trajectory.errors` non-empty → fail; no files changed → fail), then **must** run `append-changelog` to append the diff to `{new_data_dir}/changelog.jsonl`.
-- **`RunAnalysis`**: `data_id` + `trajectory_analysis: list[str]` + `actions: list[SpecAction]` + `data_quality_issues: list[str]` (mutually exclusive with the above). `SpecAction` = `file` (concrete path relative to spec root) + `operation` (add/delete/modify) + `spec_issue` (diagnosis) + `change` (modify uses BEFORE/AFTER) + `resolves[]` (indices into `trajectory_analysis`, must be non-empty and in range).
-- **Reflection flow** (`reflect`): Phase 1 swaps in `REFLECTION_ANALYSIS_PROMPT_TEMPLATE`, pre-loading the whole chain context (chain_id_path, per-data score table with Δ columns, attributed changelog, every chain link's prior analysis for that `data_id`, chain-link run files) into the prompt, forcing the five-method diagnosis + A–I diagnosis table, preferring REMOVE/REPLACE, citing the responsible chain link in `spec_issue`, hunting "lost wins." Phase 2 is mechanically unchanged; all chain learning lives only in the analysis JSON layer.
+- **Phase 1 — Analyze** (`_analyze`): `find_unanalyzed_runs` finds runs newer than the latest analysis, grouped by `data_id`; **one coding agent per `data_id` in parallel** (cwd = parent's `data_dir`), reading the tunable artifacts (read-only) + run files, producing one `RunAnalysis` (`trajectory_analysis` observations + `actions` prescriptions), then `validate-analysis` self-check. Per-`data_id` trajectories are merged and saved to `analysis/trajectory/{new_id}.json`.
+- **Phase 2 — Mutate** (`_mutate`): one coding agent (cwd = child's `artifact_dir`) reads all analyses, dedups / resolves contradictions, edits files in place, recording `mtime_before`; the Phase-2 trajectory is persisted **before** any error short-circuit (`trajectory.errors` non-empty → fail; no files changed → fail), then **must** run `append-changelog` to append the diff to `{new_data_dir}/changelog.jsonl`.
+- **`RunAnalysis`**: `data_id` + `trajectory_analysis: list[str]` + `actions: list[ArtifactAction]` + `data_quality_issues: list[str]` (mutually exclusive with the above). `ArtifactAction` = `file` (concrete path relative to the artifact root) + `operation` (add/delete/modify) + `artifact_issue` (diagnosis) + `change` (modify uses BEFORE/AFTER) + `resolves[]` (indices into `trajectory_analysis`, must be non-empty and in range).
+- **Reflection flow** (`reflect`): Phase 1 swaps in `REFLECTION_ANALYSIS_PROMPT_TEMPLATE`, pre-loading the whole chain context (chain_id_path, per-data score table with Δ columns, attributed changelog, every chain link's prior analysis for that `data_id`, chain-link run files) into the prompt, forcing the five-method diagnosis + A–I diagnosis table, preferring REMOVE/REPLACE, citing the responsible chain link in `artifact_issue`, hunting "lost wins." Phase 2 is mechanically unchanged; all chain learning lives only in the analysis JSON layer.
 - **The two built-in backends** differ only in the CLI: `ClaudeCodeProposer` (`claude --print --output-format stream-json --dangerously-skip-permissions …`) relies on prompt-declared access rules; `PiCodingAgentProposer` (`pi --mode json -e block-val-system-run.ts -e enforce-changelog-cli.ts …`) uses extensions to hard-block "read val" + "bypass changelog CLI." The Pi path is more controlled.
 
 ## 6. Evolution algorithm `ParetoFrontierEvolutionAlgorithm`
@@ -169,8 +169,8 @@ State machine: `pending` (selectable) ↔ `evolving` (occupying a slot) ↔ `una
 
 ## 8. Design points, summarized
 
-1. **The spec is the optimization target — a directory of files** — letting "optimization" use a mature coding agent that edits files directly, not a constrained-DSL search.
-2. **Not limited to agents** — any "editable file directory + repeatable evaluation" system works (workflows / single-file algorithms alike).
+1. **The tunable artifacts are the optimization target — a directory of files** — letting "optimization" use a mature coding agent that edits files directly, not a constrained-DSL search.
+2. **Not limited to agents** — any "directory of tunable artifacts + repeatable evaluation" system works (workflows / single-file algorithms alike).
 3. **Two-phase separation + quality gates** — analysis structured, mutation deduped/contradiction-resolved, each with its own prompt and validation.
 4. **Changelog is the source of truth for lineage** — append-only, child inherits parent, keeping an unreliable-LLM mutation loop traceable.
 5. **Strict val-set isolation from the proposer** — prevents val overfitting.

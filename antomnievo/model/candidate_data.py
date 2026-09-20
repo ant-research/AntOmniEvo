@@ -14,13 +14,13 @@ CandidateState = Literal["pending", "evolving", "unavailable"]
 RunSplit = Literal["train", "val"]
 
 
-class SpecAction(BaseModel):
-    """One spec change: a file location with its diagnosis and prescription."""
+class ArtifactAction(BaseModel):
+    """One tunable-artifact change: a file location with its diagnosis and prescription."""
 
     file: str = Field(
         description=(
-            "The file to modify, as a concrete path relative to the spec directory root. "
-            "Do NOT use vague targets like 'the spec' or a category name — always a concrete file path."
+            "The file to modify, as a concrete path relative to the tunable-artifact directory root. "
+            "Do NOT use vague targets like 'the tunable artifacts' or a category name — always a concrete file path."
         ),
     )
     operation: str = Field(
@@ -31,7 +31,7 @@ class SpecAction(BaseModel):
             "- modify: replace existing content with new content."
         ),
     )
-    spec_issue: str = Field(
+    artifact_issue: str = Field(
         description=(
             "The defect in this file — what is wrong, misleading, harmful, "
             "missing, or incomplete. Be specific about the current text (or its absence)."
@@ -52,7 +52,7 @@ class SpecAction(BaseModel):
             "for unambiguous matching. "
             "For 'add': the exact content to insert (no BEFORE/AFTER needed — just the raw content). "
             "For 'delete': a brief description of what to remove (e.g. 'the paragraph about X'). "
-            "If the change requires touching another file too, include a separate SpecAction for that file."
+            "If the change requires touching another file too, include a separate ArtifactAction for that file."
         ),
     )
     resolves: list[int] = Field(
@@ -68,7 +68,7 @@ class SpecAction(BaseModel):
 
 
 class RunAnalysis(BaseModel):
-    """Analysis of a single run: trajectory observations + spec actions linked by index.
+    """Analysis of a single run: trajectory observations + tunable-artifact actions linked by index.
 
     Action quality rules:
     - Mutation-actionable: every action's `change` must contain enough concrete content
@@ -79,7 +79,7 @@ class RunAnalysis(BaseModel):
       rows share the same schema" is the root cause. A root-cause action produces a mechanism
       that prevents the whole class of mistakes, not just one instance.
     - No silent drops: every `trajectory_analysis` item SHOULD be referenced by at least
-      one action's `resolves`. If a trajectory item has no feasible spec fix, explain why
+      one action's `resolves`. If a trajectory item has no feasible tunable-artifact fix, explain why
       in `data_quality_issues` rather than silently dropping it.
     """
 
@@ -90,7 +90,7 @@ class RunAnalysis(BaseModel):
             "Run-trajectory observations — one observation per list item. "
             "Each item describes ONE specific point in the trajectory: a problem (where the "
             "system went wrong and why) OR a notable success worth codifying (a behavior that "
-            "produced the correct result and should be solidified into the spec so it reproduces). "
+            "produced the correct result and should be solidified into the tunable artifacts so it reproduces). "
             "Be specific per item: which trajectory step, what the system did vs what would have "
             "been better, what was expected vs what happened. "
             "Do NOT combine multiple observations into one item — each item is referenced by "
@@ -99,14 +99,14 @@ class RunAnalysis(BaseModel):
             "MUTUALLY EXCLUSIVE with data_quality_issues — leave empty if data is flawed."
         ),
     )
-    actions: list[SpecAction] = Field(
+    actions: list[ArtifactAction] = Field(
         default_factory=list,
         description=(
-            "Concrete spec actions to fix the trajectory problems (or codify the successes) "
+            "Concrete tunable-artifact actions to fix the trajectory problems (or codify the successes) "
             "listed in `trajectory_analysis`. Each action targets a file, pairs a "
-            "`spec_issue` diagnosis with a `change` prescription, and references via `resolves` "
+            "`artifact_issue` diagnosis with a `change` prescription, and references via `resolves` "
             "which trajectory_analysis items it addresses. "
-            "An action's file MUST be the same location identified in its `spec_issue`. "
+            "An action's file MUST be the same location identified in its `artifact_issue`. "
             "Every action MUST cite at least one trajectory_analysis index in `resolves`. "
             "MUTUALLY EXCLUSIVE with data_quality_issues — leave empty if data is flawed."
         ),
@@ -157,7 +157,7 @@ class RunAnalysis(BaseModel):
     def to_description() -> str:
         return (
             "Analysis of a single run record. Captures what happened in the trajectory and the "
-            "spec changes that should follow from it.\n\n"
+            "tunable-artifact changes that should follow from it.\n\n"
             "Fields:\n" + model_fields_description(RunAnalysis) + "\n"
         )
 
@@ -166,7 +166,7 @@ class CandidateMeta(BaseModel):
     """Schema for meta.json — candidate metadata and filesystem paths."""
 
     candidate_id: str = Field(description="Unique identifier")
-    spec_dir: str = Field(default="", description="Absolute path to the candidate's spec directory")
+    artifact_dir: str = Field(default="", description="Absolute path to the candidate's tunable-artifact directory")
     data_dir: str = Field(default="", description="Absolute path to the candidate's data directory")
     parent_id: str | None = Field(default=None, description="Parent candidate ID, null for root")
     children_ids: list[str] = Field(default_factory=list, description="IDs of child candidates")
@@ -261,7 +261,7 @@ class ChangeLogEntry(BaseModel):
         description=(
             "Detailed explanation of the mutation. Must include: "
             "(1) What failure pattern or opportunity was observed, citing specific data_ids and scores from analysis; "
-            "(2) What spec change was made and why this change addresses the observed pattern; "
+            "(2) What tunable-artifact change was made and why this change addresses the observed pattern; "
             "(3) Expected impact or hypothesis. "
         ),
     )
@@ -339,6 +339,6 @@ class RunRecord(BaseModel):
             "to identify failure modes; the trajectory in system_result shows step-by-step "
             "reasoning and tool calls — look for where it goes wrong (e.g. wrong tool call, "
             "missed retrieval, hallucinated answer); high-score runs reveal correct patterns "
-            "to preserve; low-score runs reveal specific weaknesses to target with spec changes.\n\n"
+            "to preserve; low-score runs reveal specific weaknesses to target with tunable-artifact changes.\n\n"
             "Fields:\n" + model_fields_description(RunRecord) + "\n"
         )

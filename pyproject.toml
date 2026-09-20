@@ -48,7 +48,7 @@ ant-omnievo-visualizer = { path = "visualizer", editable = true }
 
 # Console scripts. These are invoked INSIDE the proposer agent's sandbox, not by
 # end users — the proposer calls `validate-analysis` to self-check its RunAnalysis
-# output and `append-changelog` to record each spec diff. Registering them here
+# output and `append-changelog` to record each artifact diff. Registering them here
 # makes both binaries discoverable on PATH within the sandbox.
 [project.scripts]
 validate-analysis = "antomnievo.proposer.scripts.validate_analysis:main"

@@ -10,8 +10,8 @@ from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.interface.evaluator import Evaluator
 from antomnievo.interface.system import System
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_schema import SpecSchema
 from antomnievo.model.trajectory import Trajectory
+from antomnievo.model.tunable_artifact_schema import TunableArtifactSchema
 from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.base_proposer import BaseProposer
 from antomnievo.proposer.utils.pi_coding_agent_utils import (
@@ -35,7 +35,7 @@ class PiCodingAgentProposer(BaseProposer):
     writes analysis result, and validates it.
 
     Phase 2 (Propose): Invokes Pi with a propose-specific prompt to read
-    analysis results and propose targeted spec modifications.
+    analysis results and propose targeted tunable-artifact modifications.
 
     The two-phase architecture is the same as ClaudeCodeProposer — see its
     docstring for the rationale.
@@ -43,13 +43,13 @@ class PiCodingAgentProposer(BaseProposer):
 
     def __init__(
         self,
-        spec_schema: SpecSchema,
+        tunable_artifact_schema: TunableArtifactSchema,
         candidate_store: CandidateStore,
         evaluator: Evaluator,
         *,
         thinking: PiThinkingLevel | None = None,
         system: System | None = None,
-        data_schema: SpecSchema = CANDIDATE_DATA_SCHEMA,
+        data_schema: TunableArtifactSchema = CANDIDATE_DATA_SCHEMA,
         pi_path: str = "pi",
         model: str = "kimi-k2.5",
         provider: Provider = PROVIDER_ANTHROPIC,
@@ -62,7 +62,7 @@ class PiCodingAgentProposer(BaseProposer):
         last_n_analysis: int | None = None,
     ):
         super().__init__(
-            spec_schema=spec_schema,
+            tunable_artifact_schema=tunable_artifact_schema,
             candidate_store=candidate_store,
             evaluator=evaluator,
             system=system,

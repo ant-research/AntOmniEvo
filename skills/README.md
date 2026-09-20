@@ -30,7 +30,7 @@ pitfall-avoidance that a human used to do by hand.
 ### eddy-antomnievo-experiment
 
 For onboarding an **Ant internal high-code agent runtime (eddy) business agent** onto AntOmniEvo —
-you have an eddy agent and want AntOmniEvo to evolve a user-chosen editable part of it (prompts,
+you have an eddy agent and want AntOmniEvo to evolve user-chosen tunable artifacts of it (prompts,
 skills, configs). Covers the full path from workspace/data setup through `generate.py` /
 `evaluate.py` smoke tests to the wired System / Evaluator / Optimizer loop. Distilled from the
 real rollout in the module-peizhiagent project; per-step details and pitfall logs live in its

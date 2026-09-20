@@ -33,9 +33,9 @@ class CandidateStore(ABC):
     that violates them breaks the optimization loop in ways the callers cannot
     detect:
 
-    1. **``spec_dir`` / ``data_dir`` MUST return real, locally-writable
+    1. **``artifact_dir`` / ``data_dir`` MUST return real, locally-writable
        directories.** They are passed as ``cwd`` to proposer-agent subprocesses
-       (pi / claude code) which edit files in place, as ``--spec-dir`` /
+       (pi / claude code) which edit files in place, as ``--artifact-dir`` /
        ``--skill-dir`` to system subprocesses (tbtest generate, appworld, …)
        which mount them into containers, and to in-process code that ``open()``s
        them. A remote backend cannot hand out a remote URI here — it must
@@ -50,7 +50,7 @@ class CandidateStore(ABC):
        freshness-diff semantics keeps working.
 
     3. **Append semantics + concurrent writers.** ``changelog.jsonl``, the
-       analysis-result files, and the spec tree are written by **external CLI
+       analysis-result files, and the tunable-artifact tree are written by **external CLI
        subprocesses** (``append-changelog``, ``validate-analysis``, the
        proposer agent), not solely by this object's methods. A remote backend
        must support safe append (and tolerate concurrent writers from agent
@@ -107,22 +107,22 @@ class CandidateStore(ABC):
         self.workspace_dir = workspace_dir
         self.cleanup_unavailable = cleanup_unavailable
 
-    # -- path helpers (return STRINGS; spec_dir/data_dir see contract #1) ----
+    # -- path helpers (return STRINGS; artifact_dir/data_dir see contract #1) ----
 
     @abstractmethod
     def candidate_dir(self, candidate_id: str) -> str:
-        """Absolute path/key of a candidate's root (spec + data live under it).
+        """Absolute path/key of a candidate's root (tunable artifacts + data live under it).
 
         Args:
             candidate_id: The 12-hex candidate id.
         """
 
     @abstractmethod
-    def spec_dir(self, candidate_id: str) -> str:
-        """Path/key of the candidate's spec tree.
+    def artifact_dir(self, candidate_id: str) -> str:
+        """Path/key of the candidate's tunable-artifact tree.
 
         MUST be a real, locally-writable directory (contract #1): it is passed
-        as ``cwd`` to proposer-agent subprocesses and as ``--spec-dir`` /
+        as ``cwd`` to proposer-agent subprocesses and as ``--artifact-dir`` /
         ``--skill-dir`` to system subprocesses. Remote impls must materialize
         it on demand.
 
@@ -134,7 +134,7 @@ class CandidateStore(ABC):
     def data_dir(self, candidate_id: str) -> str:
         """Path/key of the candidate's data dir (run records, analysis, logs).
 
-        Like ``spec_dir`` this may be passed as ``cwd`` to the analysis agent,
+        Like ``artifact_dir`` this may be passed as ``cwd`` to the analysis agent,
         and external CLIs write into ``analysis/result/`` and
         ``changelog.jsonl`` here — so it must be locally writable (contract #1)
         and tolerate append-style concurrent writers (contract #3).
@@ -225,18 +225,18 @@ class CandidateStore(ABC):
 
     @abstractmethod
     def create_root(
-        self, state: CandidateState = "unavailable", initial_spec_dir: str | None = None
+        self, state: CandidateState = "unavailable", initial_artifacts_dir: str | None = None
     ) -> CandidateMeta:
         """Create the root (generation-0) candidate and return its meta.
 
-        Seeds the spec tree from ``initial_spec_dir`` (copytree / remote copy).
-        A remote impl must materialize an initially-writable spec dir here
+        Seeds the artifact tree from ``initial_artifacts_dir`` (copytree / remote copy).
+        A remote impl must materialize an initially-writable tunable-artifact dir here
         (contract #1).
 
         Args:
             state: Initial ``CandidateState`` (default ``"unavailable"``).
-            initial_spec_dir: Local source spec dir to copy in. If None, an
-                empty spec dir is created.
+            initial_artifacts_dir: Local source artifact dir to copy in. If None, an
+                empty tunable-artifact dir is created.
 
         Returns:
             The new root candidate's ``CandidateMeta``.
@@ -251,7 +251,7 @@ class CandidateStore(ABC):
         epoch: int | None = None,
         dataset_index: int | None = None,
     ) -> CandidateMeta | None:
-        """Create a child candidate by copying the parent's spec tree.
+        """Create a child candidate by copying the parent's tunable-artifact tree.
 
         Bumps generation, links ``children_ids`` on the parent.
 

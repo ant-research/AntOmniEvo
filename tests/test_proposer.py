@@ -16,8 +16,8 @@ from antomnievo.common.utils.fs_utils import get_latest_mtime
 from antomnievo.common.utils.trajectory_parser import parse_stream_json
 from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.interface.evaluator import Evaluator
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
 from antomnievo.model.trajectory import Span, Trajectory
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 from antomnievo.proposer.claude_code_proposer import ClaudeCodeProposer
 from antomnievo.proposer.utils.claude_code_utils import (
     ClaudeCodeConfig,
@@ -40,10 +40,10 @@ def store(workspace):
 
 
 @pytest.fixture
-def spec_schema() -> SpecSchema:
+def tunable_artifact_schema() -> TunableArtifactSchema:
     return FolderSchema(
-        name="spec",
-        description="Test spec directory",
+        name="artifact",
+        description="Test tunable-artifact directory",
         files=[
             FileSchema(name="SKILL.md", description="Main instructions"),
         ],
@@ -51,11 +51,11 @@ def spec_schema() -> SpecSchema:
 
 
 @pytest.fixture
-def proposer(spec_schema: SpecSchema, store: CandidateStore):
+def proposer(tunable_artifact_schema: TunableArtifactSchema, store: CandidateStore):
     evaluator = MagicMock(spec=Evaluator)
     evaluator.scoring_criteria.return_value = "test criteria"
     return ClaudeCodeProposer(
-        spec_schema=spec_schema,
+        tunable_artifact_schema=tunable_artifact_schema,
         candidate_store=store,
         evaluator=evaluator,
         claude_code_path="echo",
@@ -84,9 +84,9 @@ class TestPromptBuilding:
 
         prompt = proposer._build_propose_prompt(root, child)
         assert root.data_dir in prompt
-        assert child.spec_dir in prompt
+        assert child.artifact_dir in prompt
         assert child.data_dir in prompt
-        assert root.spec_dir in prompt
+        assert root.artifact_dir in prompt
 
 
 class TestStreamJsonParsing:

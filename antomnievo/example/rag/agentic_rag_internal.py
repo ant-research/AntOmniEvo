@@ -20,7 +20,7 @@ from antomnievo.evaluator.rag.atomic_fact_evaluator import AtomicFactEvaluator
 from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvolutionAlgorithm
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_defs.agent_skill_spec_def import AGENT_SKILL_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.agent_skill_tunable_artifact_def import AGENT_SKILL_TUNABLE_ARTIFACT_SCHEMA
 from antomnievo.optimizer.optimizer import Optimizer
 from antomnievo.proposer.claude_code_proposer import ClaudeCodeProposer
 from antomnievo.store.candidate_store import LocalCandidateStore
@@ -121,7 +121,7 @@ async def main():
 
     proposer = ClaudeCodeProposer(
         api_key=ANTCHAT_API_KEYS[0],
-        spec_schema=AGENT_SKILL_SPEC_SCHEMA,
+        tunable_artifact_schema=AGENT_SKILL_TUNABLE_ARTIFACT_SCHEMA,
         candidate_store=candidate_store,
         evaluator=evaluator,
         data_schema=CANDIDATE_DATA_SCHEMA,

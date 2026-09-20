@@ -71,8 +71,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Append a changelog entry with auto-computed diff and files_modified"
     )
-    parser.add_argument("old_dir", help="Original (parent) spec directory")
-    parser.add_argument("new_dir", help="Modified (new) spec directory")
+    parser.add_argument("old_dir", help="Original (parent) tunable-artifact directory")
+    parser.add_argument("new_dir", help="Modified (new) tunable-artifact directory")
     parser.add_argument("changelog_jsonl", help="Path to changelog.jsonl file")
     parser.add_argument("--type", required=True, choices=sorted(VALID_TYPES),
                         help="Change type")

@@ -8,10 +8,10 @@ import pytest
 
 from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.model.candidate_data import (
+    ArtifactAction,
     CandidateMeta,
     ChangeLogEntry,
     RunAnalysis,
-    SpecAction,
 )
 from antomnievo.model.evaluation_result import EvaluationResult
 from antomnievo.model.system_result import SystemResult
@@ -44,7 +44,7 @@ class TestCandidateStore:
         assert meta.candidate_id
         assert meta.generation == 0
         assert meta.parent_id is None
-        assert os.path.isdir(meta.spec_dir)
+        assert os.path.isdir(meta.artifact_dir)
         assert os.path.isdir(meta.data_dir)
 
     def test_create_child(self, store: CandidateStore, root_candidate: CandidateMeta):
@@ -54,16 +54,16 @@ class TestCandidateStore:
         assert child.generation == 1
         assert child.candidate_id in root_candidate.children_ids
 
-    def test_create_child_copies_spec(self, store: CandidateStore, root_candidate: CandidateMeta):
-        parent_file = os.path.join(root_candidate.spec_dir, "SKILL.md")
+    def test_create_child_copies_artifact(self, store: CandidateStore, root_candidate: CandidateMeta):
+        parent_file = os.path.join(root_candidate.artifact_dir, "SKILL.md")
         with open(parent_file, "w") as f:
-            f.write("# Original spec")
+            f.write("# Original artifact")
 
         child = store.create_child(root_candidate.candidate_id)
-        child_file = os.path.join(child.spec_dir, "SKILL.md")
+        child_file = os.path.join(child.artifact_dir, "SKILL.md")
         assert os.path.exists(child_file)
         with open(child_file) as f:
-            assert f.read() == "# Original spec"
+            assert f.read() == "# Original artifact"
 
     def test_create_child_copies_changelog(self, store: CandidateStore, root_candidate: CandidateMeta):
         entry = ChangeLogEntry(
@@ -134,10 +134,10 @@ class TestCandidateStore:
                 "System failed to decompose the question into sub-questions"
             ],
             actions=[
-                SpecAction(
+                ArtifactAction(
                     file="SKILL.md",
                     operation="add",
-                    spec_issue="No decomposition rule in spec",
+                    artifact_issue="No decomposition rule in the tunable artifacts",
                     change="Add a decomposition step that breaks the question into sub-questions",
                     resolves=[0],
                 )
@@ -149,7 +149,7 @@ class TestCandidateStore:
         assert len(analyses) == 1
         assert analyses[0].data_id == "test_001"
         assert len(analyses[0].actions) == 1
-        assert analyses[0].actions[0].spec_issue == "No decomposition rule in spec"
+        assert analyses[0].actions[0].artifact_issue == "No decomposition rule in the tunable artifacts"
 
     def test_analysis_update_preserves_created_at(self, store: CandidateStore, root_candidate: CandidateMeta):
         entry1 = RunAnalysis(data_id="test_001")
@@ -161,10 +161,10 @@ class TestCandidateStore:
             data_id="test_001",
             trajectory_analysis=["updated observation"],
             actions=[
-                SpecAction(
+                ArtifactAction(
                     file="SKILL.md",
                     operation="modify",
-                    spec_issue="updated spec",
+                    artifact_issue="updated tunable artifacts",
                     change="BEFORE:\nold\nAFTER:\nnew",
                     resolves=[0],
                 )
@@ -355,9 +355,9 @@ class TestStateAndProgress:
         cid = "legacy_cid_test1"
         cand_data_dir = os.path.join(store.candidate_dir(cid), "data")
         os.makedirs(cand_data_dir, exist_ok=True)
-        os.makedirs(store.spec_dir(cid), exist_ok=True)
+        os.makedirs(store.artifact_dir(cid), exist_ok=True)
         legacy = (
-            '{"candidate_id": "%s", "spec_dir": "", "data_dir": "", '
+            '{"candidate_id": "%s", "artifact_dir": "", "data_dir": "", '
             '"parent_id": null, "children_ids": [], "is_available": true, '
             '"generation": 0, "reflection_depth": 0}'
         ) % cid
@@ -375,7 +375,7 @@ class TestStateAndProgress:
         cid2 = "legacy_cid_test2"
         cand_data_dir2 = os.path.join(store.candidate_dir(cid2), "data")
         os.makedirs(cand_data_dir2, exist_ok=True)
-        os.makedirs(store.spec_dir(cid2), exist_ok=True)
+        os.makedirs(store.artifact_dir(cid2), exist_ok=True)
         with open(os.path.join(cand_data_dir2, "meta.json"), "w") as f:
             f.write(legacy.replace('"is_available": true', '"is_available": false').replace(cid, cid2))
 

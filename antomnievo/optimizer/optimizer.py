@@ -31,7 +31,7 @@ from antomnievo.model.usage_stats import UsageStats
 logger = logging.getLogger(__name__)
 
 class Optimizer:
-    """Evolutionary optimization loop for agent spec improvement.
+    """Evolutionary optimization loop for agent tunable-artifact improvement.
 
     Uses a candidate-pool / parallel-slot scheduler. Up to ``num_proposals``
     candidates evolve concurrently, each consuming its own (epoch, dataset_index)
@@ -62,12 +62,12 @@ class Optimizer:
         num_proposals: int = 1,
         max_reflection_iterations: int = 0,
         min_improvement_per_batch: float = 0.0,
-        initial_spec_dir: str | None = None,
+        initial_artifacts_dir: str | None = None,
     ):
         """
         Args:
             system: The system to optimize. Runs on each data instance and produces outputs.
-            proposer: Generates mutated candidate specs from existing ones. Uses candidate_store
+            proposer: Generates mutated candidate artifacts from existing ones. Uses candidate_store
                 internally to resolve candidate IDs to metadata. The proposer's own
                 ``concurrency`` should be >= ``num_proposals`` for the parallelism to
                 actually take effect — otherwise slots queue on the proposer's semaphore.
@@ -75,7 +75,7 @@ class Optimizer:
             evolution_algorithm: Selects candidates for mutation and eliminates weak ones
                 (e.g. ParetoFrontierEvolutionAlgorithm). Operates only on 'pending'
                 candidates — 'evolving' parents are never re-selected or eliminated.
-            candidate_store: Filesystem-backed storage for candidate specs, run records,
+            candidate_store: Filesystem-backed storage for candidate artifacts, run records,
                 analysis, changelogs, and summaries. Configure cleanup behavior via
                 ``CandidateStore(cleanup_unavailable=...)`` at construction time.
             train_dataset: Data instances used for rollout evaluation during each iteration.
@@ -121,7 +121,7 @@ class Optimizer:
         self.statistics = candidate_store.get_statistics()
         self.max_reflection_iterations = max_reflection_iterations
         self.min_improvement_per_batch = min_improvement_per_batch
-        self.initial_spec_dir = initial_spec_dir
+        self.initial_artifacts_dir = initial_artifacts_dir
 
         candidate_store.append_parameters({
             "start_time": datetime.now().isoformat(),
@@ -144,7 +144,7 @@ class Optimizer:
             "train_inst_ids": [inst.id for inst in train_dataset],
             "val_inst_ids": [inst.id for inst in val_dataset],
             "workspace_dir": candidate_store.workspace_dir,
-            "initial_spec_dir": initial_spec_dir,
+            "initial_artifacts_dir": initial_artifacts_dir,
         })
 
         if candidate_store.cleanup_unavailable:
@@ -436,7 +436,7 @@ class Optimizer:
             failed_child_id: The first failed child (v0) — the candidate produced by the
                 normal propose path that did NOT clear the batch threshold and triggered
                 reflection. Serves three roles inside the loop:
-                  (1) the initial ``prev_id`` so v1's spec is built on top of it,
+                  (1) the initial ``prev_id`` so v1's tunable artifacts are built on top of it,
                   (2) the initial ``best_id`` / ``best_rollout`` (any reflection child
                       must beat THIS, not the original parent, to become best),
                   (3) the v0 entry in ``chain_evals`` / ``chain_ids`` so the
@@ -645,8 +645,8 @@ class Optimizer:
             self.statistics.max_system_runs = (self.budget.max_system_runs or 0) if self.budget else 0
         else:
             logger.info("Starting from scratch, creating root candidate")
-            root_spec = self.candidate_store.create_root(initial_spec_dir=self.initial_spec_dir)
-            root_id = root_spec.candidate_id
+            root_meta = self.candidate_store.create_root(initial_artifacts_dir=self.initial_artifacts_dir)
+            root_id = root_meta.candidate_id
             logger.info(f"Evaluating root candidate baseline: {root_id}")
             baseline_eval_list = await self._evaluate_first(root_id)
             baseline_score_list = [eval_result.score for eval_result in baseline_eval_list]

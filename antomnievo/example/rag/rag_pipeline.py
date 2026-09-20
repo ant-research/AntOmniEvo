@@ -2,9 +2,9 @@
 """
 Retrieval-Pipeline Auto-Optimizer entry point.
 
-Mirrors appworld.py: optimizes a retrieval-pipeline DAG spec
-(``RAG_PIPELINE_SPEC_SCHEMA``) on MuSiQue. The "system" is retrieval-test's
-``generate.py`` (runs the spec_dir pipeline over queries) and the evaluator is
+Mirrors appworld.py: optimizes the retrieval-pipeline DAG tunable artifacts
+(``RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA``) on MuSiQue. The "system" is retrieval-test's
+``generate.py`` (runs the artifact_dir pipeline over queries) and the evaluator is
 retrieval-test's ``evaluate.py`` (nDCG@k / Recall@k vs golden_doc_ids). Both run
 in the retrieval-test venv as subprocesses, so the antomnievo environment does not
 need retrieval_test / rank_bm25 / numpy installed.
@@ -26,7 +26,9 @@ from antomnievo.evolution_algorithm.pareto_frontier import (
 )
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_defs.rag_pipeline_spec_def import RAG_PIPELINE_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.rag_pipeline_tunable_artifact_def import (
+    RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA,
+)
 from antomnievo.optimizer.rag_pipeline.rag_pipeline_optimizer import (
     RagPipelineOptimizer,
 )
@@ -37,12 +39,12 @@ from antomnievo.system.rag_pipeline.rag_pipeline_system import RagPipelineSystem
 logger = logging.getLogger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-# retrieval-test hosts generate.py / evaluate.py, the baseline spec, AND the
+# retrieval-test hosts generate.py / evaluate.py, the baseline tunable artifacts, AND the
 # pre-built MuSiQue dataset (train/val corpus + queries). Its venv (with
 # retrieval_test + rank_bm25 + numpy + the API clients) runs the subprocesses.
 RETRIEVAL_TEST_DIR = os.path.expanduser("~/work/retrieval-test")
 RETRIEVAL_TEST_PYTHON = os.path.join(RETRIEVAL_TEST_DIR, ".venv", "bin", "python")
-INITIAL_SPEC_DIR = os.path.join(RETRIEVAL_TEST_DIR, "specs", "default")
+INITIAL_ARTIFACTS_DIR = os.path.join(RETRIEVAL_TEST_DIR, "specs", "default")
 MUSIQUE_DATASET_DIR = os.path.join(RETRIEVAL_TEST_DIR, "datasets", "musique")
 TRAIN_SPLIT_DIR = os.path.join(MUSIQUE_DATASET_DIR, "train")
 VAL_SPLIT_DIR = os.path.join(MUSIQUE_DATASET_DIR, "val")
@@ -99,7 +101,7 @@ async def main():
 
     proposer = PiCodingAgentProposer(
         api_key=ANTCHAT_API_KEY,
-        spec_schema=RAG_PIPELINE_SPEC_SCHEMA,
+        tunable_artifact_schema=RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA,
         candidate_store=candidate_store,
         evaluator=evaluator,
         data_schema=CANDIDATE_DATA_SCHEMA,
@@ -124,7 +126,7 @@ async def main():
         batch_size=6,
         budget=Budget(max_iterations=1000),
         num_proposals=2,
-        initial_spec_dir=INITIAL_SPEC_DIR,
+        initial_artifacts_dir=INITIAL_ARTIFACTS_DIR,
         max_reflection_iterations=3,
         min_improvement_per_batch=2.0,
     )

@@ -6,7 +6,7 @@ from antomnievo.model.antomnievo_data import MaraChain, ProposalResult
 
 
 class Proposer(ABC):
-    """Generates a new candidate spec by modifying an existing one.
+    """Generates new candidate tunable artifacts by modifying an existing set.
 
     Pure abstract interface. Implementation details belong in concrete subclasses.
     """
@@ -33,12 +33,12 @@ class Proposer(ABC):
         """Analysis phase only: analyze the parent's unanalyzed runs and write analysis results.
 
         Public entry point for business callers that want to run the analysis
-        phase standalone (without mutating the spec). ``BaseProposer`` provides
+        phase standalone (without mutating the tunable artifacts). ``BaseProposer`` provides
         the default implementation.
 
         Depended on by:
             - ``propose``: runs this as Phase 1 of its two-phase
-              (analyze → mutate) flow, then mutates the spec based on the
+              (analyze → mutate) flow, then mutates the tunable artifacts based on the
               analysis results written here.
         """
         ...
@@ -60,9 +60,9 @@ class Proposer(ABC):
 
         Reflection depth is ``chain.depth`` (number of failed attempts so far,
         i.e. k). ``chain.last`` is the immediately preceding failed child whose
-        spec serves as the starting point for v_k. ``new_candidate_id`` is the
-        candidate whose spec will be produced — its spec_dir already contains a
-        copy of ``chain.last``'s spec, ready to be edited in place.
+        tunable artifacts serve as the starting point for v_k. ``new_candidate_id`` is the
+        candidate whose tunable artifacts will be produced — its artifact_dir already contains a
+        copy of ``chain.last``'s tunable artifacts, ready to be edited in place.
 
         Seeing the FULL per-data score trajectory across the chain — root → v0 →
         v1 → ... → v_{k-1} — lets the agent detect oscillation (a data_id that

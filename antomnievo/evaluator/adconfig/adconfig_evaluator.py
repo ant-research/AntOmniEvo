@@ -43,7 +43,7 @@ From the project evaluator's per-case detail:
   model key / MCP needed.
 - A pre-built schema manifest is a FIXED input (the cases carry `code_version`
   only in replay context, not as a structured change field; without the manifest
-  the schema-source stage fails). It's not something the agent/spec controls.
+  the schema-source stage fails). It's not something the agent/tunable-artifacts control.
 - The full `all` stage (LLM process-judge + semantic + runtime) exists but is too
   slow for the optimization loop; its `runtime` dimension is low because the agent
   correctly does NOT push the release offline — that's expected, not a defect.

@@ -161,7 +161,7 @@ def validate_analysis_entry(analysis: RunAnalysis) -> list[str]:
                 break
 
     for j, action in enumerate(analysis.actions):
-        for action_field in ("file", "operation", "spec_issue", "change", "resolves"):
+        for action_field in ("file", "operation", "artifact_issue", "change", "resolves"):
             value = getattr(action, action_field, "")
             if not value:
                 errors.append(f"{prefix}: actions[{j}].{action_field} is empty")

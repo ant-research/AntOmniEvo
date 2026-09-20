@@ -30,7 +30,7 @@ fuse weights (rrf_k), rerank (top_m), query rewriting.
 
 
 class RagPipelineEvaluator(Evaluator):
-    """Evaluator that scores a retrieval-pipeline spec via retrieval-test's evaluate.py.
+    """Evaluator that scores the retrieval-pipeline tunable artifacts via retrieval-test's evaluate.py.
 
     Mirrors AppWorldEvaluator: ``_evaluate`` is unused (raises); all scoring goes
     through ``evaluate_batch``, which shells out to ``evaluate.py`` in the
@@ -92,14 +92,14 @@ class RagPipelineEvaluator(Evaluator):
                 }) + "\n")
 
     def _build_cmd(
-        self, spec_dir: str, queries_path: str, predictions_path: str,
+        self, artifact_dir: str, queries_path: str, predictions_path: str,
         output_dir: str, corpus_path: str,
     ) -> list[str]:
-        # --spec-dir is required by the CLI even though --predictions means the
-        # pipeline is NOT re-run; pass the candidate's spec_dir for traceability.
+        # --artifact-dir is required by the CLI even though --predictions means the
+        # pipeline is NOT re-run; pass the candidate's artifact_dir for traceability.
         cmd = [
             self.retrieval_test_python, self._evaluate_script,
-            "--spec-dir", spec_dir,
+            "--artifact-dir", artifact_dir,
             "--queries", queries_path,
             "--predictions", predictions_path,
             "-k", str(self.k),
@@ -140,7 +140,7 @@ class RagPipelineEvaluator(Evaluator):
         *,
         eval_output_dir: str,
         predictions_path: str,
-        spec_dir: str,
+        artifact_dir: str,
         **kwargs,
     ) -> list[EvaluationResult]:
         """Score the batch by running evaluate.py over reused predictions.
@@ -148,7 +148,7 @@ class RagPipelineEvaluator(Evaluator):
         Keyword args (supplied by the optimizer):
             eval_output_dir: where evaluate.py writes eval.json + details.jsonl.
             predictions_path: predictions.jsonl from the system run (reused, not re-run).
-            spec_dir: the candidate's spec dir (passed to --spec-dir for traceability).
+            artifact_dir: the candidate's artifact dir (passed to --artifact-dir for traceability).
 
         The corpus is split-specific and is NOT fixed at construction — it is
         read at runtime from each data inst's ``corpus_path`` (train queries ->
@@ -185,7 +185,7 @@ class RagPipelineEvaluator(Evaluator):
         self._write_queries(data_list, queries_path)
 
         effective_corpus = getattr(data_list[0], "corpus_path", "")
-        cmd = self._build_cmd(spec_dir, queries_path, predictions_path, eval_output_dir, effective_corpus)
+        cmd = self._build_cmd(artifact_dir, queries_path, predictions_path, eval_output_dir, effective_corpus)
         logger.info(
             "Running evaluate.py: %d queries, k=%d, predictions=%s, corpus=%s",
             len(data_list), self.k, predictions_path, effective_corpus or "(none)",

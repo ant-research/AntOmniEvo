@@ -32,17 +32,17 @@ class FolderSchema(BaseModel):
         return lines
 
 
-SpecSchema = FileSchema | FolderSchema
+TunableArtifactSchema = FileSchema | FolderSchema
 
 
-def render_spec_schema(schema: SpecSchema) -> str:
+def render_tunable_artifact_schema(schema: TunableArtifactSchema) -> str:
     if isinstance(schema, FileSchema):
         return f"# {schema.name}\n\n{schema.description}"
 
     parts = [f"# {schema.name}/\n\n{schema.description}"]
 
     tree_lines = schema.tree_lines()
-    parts.append("Spec directory structure:\n```\n" + "\n".join(tree_lines) + "\n```")
+    parts.append("tunable artifacts directory structure:\n```\n" + "\n".join(tree_lines) + "\n```")
 
     desc_lines: list[str] = []
     _collect_descriptions(schema.files, desc_lines, depth=0)

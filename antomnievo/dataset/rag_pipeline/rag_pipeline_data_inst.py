@@ -8,7 +8,7 @@ from antomnievo.interface.data_inst import DataInst
 class RagPipelineDataInst(DataInst):
     """Data instance for retrieval-pipeline optimization on MuSiQue.
 
-    The optimization target is the retrieval DAG spec (``RAG_PIPELINE_SPEC_SCHEMA``):
+    The optimization target is the retrieval DAG tunable artifacts (``RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA``):
     the system runs ``generate.py`` over a batch of queries and the evaluator
     scores nDCG@k / Recall@k of the retrieved docs against the doc ids of
     ``golden_docs`` (the supporting passages).

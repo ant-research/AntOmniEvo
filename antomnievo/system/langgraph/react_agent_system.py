@@ -17,7 +17,7 @@ from antomnievo.system.langgraph.react_agent import create_react_agent
 logger = logging.getLogger(__name__)
 
 def _skill_md_path(candidate_meta: CandidateMeta) -> str:
-    return os.path.join(candidate_meta.spec_dir, "SKILL.md")
+    return os.path.join(candidate_meta.artifact_dir, "SKILL.md")
 
 
 def _read_skill_md(candidate_meta: CandidateMeta) -> str | None:
@@ -27,12 +27,12 @@ def _read_skill_md(candidate_meta: CandidateMeta) -> str | None:
             return f.read()
     return None
 
-def _build_spec_file_tools(candidate_meta: CandidateMeta) -> list[BaseTool]:
-    """Build file tools scoped to a candidate's spec directory."""
-    spec_dir = candidate_meta.spec_dir
+def _build_artifact_file_tools(candidate_meta: CandidateMeta) -> list[BaseTool]:
+    """Build file tools scoped to a candidate's tunable-artifact directory."""
+    artifact_dir = candidate_meta.artifact_dir
 
     @tool
-    def read_spec_file(path: str) -> str:
+    def read_artifact_file(path: str) -> str:
         """Read a file from the specific skill directory. You MUST call this tool whenever SKILL.md
         instructs you to read a reference file (e.g. lines containing "Read `references/...`"
         or "see references/... for"). File paths are listed in SKILL.md's ## References
@@ -41,10 +41,10 @@ def _build_spec_file_tools(candidate_meta: CandidateMeta) -> list[BaseTool]:
         SKILL.md only contains summaries, the full guidance is in the reference files.
 
         Args:
-            path: Relative path within the spec directory (e.g. "references/patterns.md", "scripts/search.py").
+            path: Relative path within the tunable-artifact directory (e.g. "references/patterns.md", "scripts/search.py").
         """
-        full_path = os.path.normpath(os.path.join(spec_dir, path))
-        if not full_path.startswith(os.path.normpath(spec_dir)):
+        full_path = os.path.normpath(os.path.join(artifact_dir, path))
+        if not full_path.startswith(os.path.normpath(artifact_dir)):
             return "Error: path traversal not allowed"
         if not os.path.isfile(full_path):
             return f"File not found: {path}"
@@ -54,12 +54,12 @@ def _build_spec_file_tools(candidate_meta: CandidateMeta) -> list[BaseTool]:
         except Exception as e:
             return f"Error reading file: {e}"
 
-    return [read_spec_file]
+    return [read_artifact_file]
 
 
 class ReactAgentSystem(System):
     """System implementation that runs a LangGraph ReAct Agent. It is used for experiment.
-    It loads the candidate spec data to complete tasks.
+    It loads the candidate tunable-artifact data to complete tasks.
 
     Loads SKILL.md as the system prompt. Provides file tools so the agent
     """
@@ -87,15 +87,15 @@ class ReactAgentSystem(System):
         tool_instructions = "\n\n## Available Tools\nYou MUST use the following tools to complete tasks. Do NOT answer without calling tools first.\n"
         for t in self.tools:
             tool_instructions += f"- `{t.name}`: {t.description}\n"
-        tool_instructions += "- `read_spec_file`: Read reference files from the spec directory as instructed by SKILL.md.\n"
+        tool_instructions += "- `read_artifact_file`: Read reference files from the tunable-artifact directory as instructed by SKILL.md.\n"
         tool_instructions += "\nIMPORTANT: Always call the appropriate tool(s) before answering. Never say you cannot access information — use the tools to retrieve it."
 
         system_prompt = f"{self.system_prompt}\n\n{skill_prompt}{tool_instructions}".strip()
-        spec_tools = _build_spec_file_tools(candidate_meta)
+        artifact_tools = _build_artifact_file_tools(candidate_meta)
 
         agent = create_react_agent(
             llm=self.llm,
-            tools=self.tools + spec_tools,
+            tools=self.tools + artifact_tools,
             system_prompt=system_prompt,
             max_assistant_turns=self.max_assistant_turns,
             agent_name=self.agent_name,
@@ -168,11 +168,11 @@ async def main():
         library_id_list=[68600736],
     )
 
-    # ---- Build a candidate spec directory ----
-    spec_dir = tempfile.mkdtemp(prefix="spec_")
-    os.makedirs(os.path.join(spec_dir, "references"), exist_ok=True)
+    # ---- Build a candidate tunable-artifact directory ----
+    artifact_dir = tempfile.mkdtemp(prefix="artifact_")
+    os.makedirs(os.path.join(artifact_dir, "references"), exist_ok=True)
 
-    with open(os.path.join(spec_dir, "SKILL.md"), "w") as f:
+    with open(os.path.join(artifact_dir, "SKILL.md"), "w") as f:
         f.write(
             "---\n"
             "name: knowledge-qa\n"
@@ -189,7 +189,7 @@ async def main():
             "- `references/city_info.md` — BEFORE answering any question, read this for essential domain facts.\n"
         )
 
-    with open(os.path.join(spec_dir, "references", "city_info.md"), "w") as f:
+    with open(os.path.join(artifact_dir, "references", "city_info.md"), "w") as f:
         f.write(
             "# City Information\n\n"
             "Faceby is a small town in North Yorkshire, England. "
@@ -197,7 +197,7 @@ async def main():
             "The town has a population of approximately 200 people.\n"
         )
 
-    meta = CandidateMeta(candidate_id="demo", spec_dir=spec_dir, data_dir="")
+    meta = CandidateMeta(candidate_id="demo", artifact_dir=artifact_dir, data_dir="")
 
     # ---- Run ----
     system = ReactAgentSystem(
@@ -210,7 +210,7 @@ async def main():
     data_inst = DataInst(id="0", query=query, golden_answer="")
 
     logger.info(f"Query: {query}")
-    logger.info(f"Spec dir: {spec_dir}")
+    logger.info(f"Artifact dir: {artifact_dir}")
 
     result = await system.run(meta, data_inst)
 
@@ -218,26 +218,26 @@ async def main():
     logger.info(f"Trajectory spans: {len(result.trajectory.root_span_list)}")
 
     # ---- Check tool calls ----
-    read_spec_file_called = False
+    read_artifact_file_called = False
     rag_retrieval_called = False
 
     def _check_spans(spans: list[Span]):
-        nonlocal read_spec_file_called, rag_retrieval_called
+        nonlocal read_artifact_file_called, rag_retrieval_called
         for span in spans:
             if span.span_type == "tool_call":
-                if span.name == "read_spec_file":
-                    read_spec_file_called = True
-                    logger.info(f"read_spec_file called with input: {span.input}")
+                if span.name == "read_artifact_file":
+                    read_artifact_file_called = True
+                    logger.info(f"read_artifact_file called with input: {span.input}")
                 elif span.name == "rag_retrieval":
                     rag_retrieval_called = True
                     logger.info(f"rag_retrieval called with input: {span.input}")
             _check_spans(span.children)
 
     _check_spans(result.trajectory.root_span_list)
-    if read_spec_file_called:
-        logger.info("SUCCESS: read_spec_file was called by the agent")
+    if read_artifact_file_called:
+        logger.info("SUCCESS: read_artifact_file was called by the agent")
     else:
-        logger.warning("FAILURE: read_spec_file was NOT called by the agent")
+        logger.warning("FAILURE: read_artifact_file was NOT called by the agent")
     if rag_retrieval_called:
         logger.info("SUCCESS: rag_retrieval was called by the agent")
     else:

@@ -19,27 +19,27 @@ _SKILL_DIR = f"/root/.claude/skills/{_SKILL_NAME}"
 
 
 def _generate_dockerfile() -> str:
-    """Generate a Dockerfile that copies spec files from the build context."""
+    """Generate a Dockerfile that copies tunable-artifact files from the build context."""
     lines = ["FROM harbor-dp-base:latest", ""]
     lines.append(f"RUN rm -rf {_SKILL_DIR} && mkdir -p {_SKILL_DIR}")
-    lines.append(f"COPY spec/ {_SKILL_DIR}/")
+    lines.append(f"COPY artifact/ {_SKILL_DIR}/")
     return "\n".join(lines) + "\n"
 
 
-def _inject_spec_into_task_dir(task_dir: str, spec_dir: str) -> None:
-    """Inject candidate spec into a task directory.
+def _inject_artifact_into_task_dir(task_dir: str, artifact_dir: str) -> None:
+    """Inject candidate tunable artifacts into a task directory.
 
-    Copies spec files into ``<task_dir>/environment/spec/`` so they are
+    Copies tunable-artifact files into ``<task_dir>/environment/artifact/`` so they are
     available in the Docker build context, then rewrites the Dockerfile
-    to use a relative ``COPY spec/`` instruction.
+    to use a relative ``COPY artifact/`` instruction.
     """
     env_dir = os.path.join(task_dir, "environment")
-    spec_dest = os.path.join(env_dir, "spec")
+    artifact_dest = os.path.join(env_dir, "artifact")
 
-    if os.path.isdir(spec_dest):
-        shutil.rmtree(spec_dest)
-    if os.path.isdir(spec_dir):
-        shutil.copytree(spec_dir, spec_dest)
+    if os.path.isdir(artifact_dest):
+        shutil.rmtree(artifact_dest)
+    if os.path.isdir(artifact_dir):
+        shutil.copytree(artifact_dir, artifact_dest)
 
     dockerfile_path = os.path.join(env_dir, "Dockerfile")
     with open(dockerfile_path, "w", encoding="utf-8") as f:
@@ -131,7 +131,7 @@ class DPText2SQLOptimizer(Optimizer):
                 assert isinstance(data_inst, Text2SQLDataInst)
                 dst = os.path.join(dataset_dir, data_inst.id)
                 shutil.copytree(data_inst.task_dir, dst)
-                _inject_spec_into_task_dir(dst, meta.spec_dir)
+                _inject_artifact_into_task_dir(dst, meta.artifact_dir)
 
             results = await self.system.run_batch(
                 meta, data_list,

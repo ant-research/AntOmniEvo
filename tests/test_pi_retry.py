@@ -4,7 +4,7 @@ Covers the pure decision helpers (``classify_pi_error``, ``retry_backoff_seconds
 and the retry loop inside ``PiCodingAgentProposer.invoke_agent``. The loop is
 exercised in isolation via ``__new__`` + the two attributes the method reads
 (``self._sem``, ``self._config``), with ``invoke_pi_coding_agent`` and
-``parse_pi_json_output`` stubbed — no SpecSchema/CandidateStore/Evaluator needed.
+``parse_pi_json_output`` stubbed — no TunableArtifactSchema/CandidateStore/Evaluator needed.
 """
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -22,7 +22,7 @@ from antomnievo.proposer.utils.pi_coding_agent_utils import (
 
 def _make_proposer():
     """A proposer with only the attrs ``invoke_agent`` touches — bypasses the
-    heavy BaseProposer construction (SpecSchema/store/evaluator)."""
+    heavy BaseProposer construction (TunableArtifactSchema/store/evaluator)."""
     p = mod.PiCodingAgentProposer.__new__(mod.PiCodingAgentProposer)
     p._sem = asyncio.Semaphore(2)
     p._config = MagicMock()

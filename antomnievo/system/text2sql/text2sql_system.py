@@ -164,8 +164,8 @@ class Text2SQLSystem(System):
         **kwargs,
     ) -> list[SystemResult]:
         """Run generate_predictions via subprocess for a batch of data items."""
-        skill_dir = os.path.join(candidate_meta.spec_dir, "skill")
-        extensions_dir = os.path.join(candidate_meta.spec_dir, "extensions")
+        skill_dir = os.path.join(candidate_meta.artifact_dir, "skill")
+        extensions_dir = os.path.join(candidate_meta.artifact_dir, "extensions")
 
         cmd = [
             self.python_path, self.generate_script,

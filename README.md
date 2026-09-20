@@ -2,9 +2,9 @@
 
 > **English** · [中文](./README.zh-CN.md)
 
-**AntOmniEvo** is an auto optimization framework with a strict division of labor: **you define your system's editable parts and what "good" means — the framework controls the loop, AI agents do the work — and it delivers an optimized spec.**
+**AntOmniEvo** is an auto optimization framework with a strict division of labor: **you define your system's tunable artifacts and what "good" means — the framework controls the loop, AI agents do the work — and it delivers optimized tunable artifacts.**
 
-The editable part of your system is abstracted as a **spec** — a real directory of files: an agent's `SKILL.md` + references + scripts, a workflow's `pipeline.json` + node scripts, a single-file algorithm + its description. Anything so representable, and repeatably evaluatable, AntOmniEvo can optimize — optimization becomes plain file editing. The system-under-optimization need not contain an LLM; the proposer must be agents.
+Your system's tunable parts are abstracted as **tunable artifacts** — a real directory of files: an agent's `SKILL.md` + references + scripts, a workflow's `pipeline.json` + node scripts, a single-file algorithm + its description. Anything so representable, and repeatably evaluatable, AntOmniEvo can optimize — optimization becomes plain file editing. The system-under-optimization need not contain an LLM; the proposer must be agents.
 
 ## Division of labor: you define, framework controls, AI works
 
@@ -15,14 +15,14 @@ The editable part of your system is abstracted as a **spec** — a real director
 | `System` | how to **run** your system on one eval instance |
 | `Evaluator` | how to **score** its output (0–1) — its scoring criteria *is* the optimization objective |
 | eval **data** | the train/val instances that define "good" |
-| `SpecSchema` | maps your system's editable parts onto a directory: the file tree + what each file is for |
-| an **initial spec** | the starting point |
+| `TunableArtifactSchema` | maps your system's tunable artifacts onto a directory: the file tree + what each file is for |
+| **initial tunable artifacts** | the starting point |
 
 **The framework controls** — it runs the evolution loop, and all the control and engineering work inside it: scheduling, budgets, selection / elimination, persistence — deterministic machinery you don't write, keeping the strongest candidates in the population. Every candidate, run, analysis, and changelog is persisted to a `CandidateStore` — interruptible and resumable.
 
-**The AI works** — the changing itself is done by a coding-agent `Proposer`: it reads failure trajectories, locates which spec file to edit, and lands a structured change as a new candidate's spec — the way a human would edit code.
+**The AI works** — the changing itself is done by a coding-agent `Proposer`: it reads failure trajectories, locates which file to edit, and lands a structured change as a new candidate's tunable artifacts — the way a human would edit code.
 
-**It delivers** — the best candidate's **spec**: a real directory of files you can diff, review, and deploy, with a change lineage attributing every edit to the failure evidence that motivated it.
+**It delivers** — the best candidate's **tunable artifacts**: a real directory of files you can diff, review, and deploy, with a change lineage attributing every edit to the failure evidence that motivated it.
 
 ---
 

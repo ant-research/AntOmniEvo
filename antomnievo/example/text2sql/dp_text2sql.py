@@ -3,7 +3,7 @@
 Text2SQL Auto-Optimizer entry point.
 
 Uses Text2SQLSystem (Harbor-based) + Text2SQLEvaluator + ClaudeCodeProposer
-+ ParetoFrontierEvolutionAlgorithm to optimize the NL2SQL agent spec.
++ ParetoFrontierEvolutionAlgorithm to optimize the NL2SQL agent tunable artifacts.
 """
 import asyncio
 import logging
@@ -17,7 +17,9 @@ from antomnievo.evaluator.text2sql.dp_text2sql_evaluator import DPText2SQLEvalua
 from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvolutionAlgorithm
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_defs.dp_text2sql_skill_spec_def import TEXT2SQL_SKILL_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.dp_text2sql_skill_tunable_artifact_def import (
+    TEXT2SQL_SKILL_TUNABLE_ARTIFACT_SCHEMA,
+)
 from antomnievo.optimizer.text2sql.dp_text2sql_optimizer import DPText2SQLOptimizer
 from antomnievo.proposer.pi_coding_agent_proposer import PiCodingAgentProposer
 from antomnievo.store.candidate_store import LocalCandidateStore
@@ -75,7 +77,7 @@ async def main():
 
     proposer = PiCodingAgentProposer(
         api_key=ANTCHAT_API_KEYS[0],
-        spec_schema=TEXT2SQL_SKILL_SPEC_SCHEMA,
+        tunable_artifact_schema=TEXT2SQL_SKILL_TUNABLE_ARTIFACT_SCHEMA,
         candidate_store=candidate_store,
         evaluator=evaluator,
         data_schema=CANDIDATE_DATA_SCHEMA,
@@ -102,7 +104,7 @@ async def main():
         num_proposals=3,
         max_reflection_iterations=1,
         min_improvement_per_batch=2.0,
-        initial_spec_dir="/Users/jacklv/work/antomnievo/tasks/dp-base",
+        initial_artifacts_dir="/Users/jacklv/work/antomnievo/tasks/dp-base",
     )
 
     # ── Run ──────────────────────────────────────────────────────────────

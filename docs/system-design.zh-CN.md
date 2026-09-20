@@ -5,17 +5,17 @@
 ## 1. 一句话心智模型
 
 ```
-(trajectory, output) = System(B, x)                          # 你的系统用 spec B 在数据 x 上跑
+(trajectory, output) = System(B, x)                          # 你的系统用可调产物 B 在数据 x 上跑
 (score, reason)      = Evaluator(output)                     # 打分
-B'                   = Proposer(B, runs, scores)             # coding agent 读失败运行 + 分数,改写 spec
+B'                   = Proposer(B, runs, scores)             # coding agent 读失败运行 + 分数,改写可调产物
 B_{next}             = EvolutionAlgorithm.choose(B, B', …)   # 留下赢的,淘汰输的
 ```
 
-一次「迭代(slot)」= 选一个 parent → 在其 spec 基础上变异出 child → 在一批训练数据上 rollout parent 与 child → 比较分数 → 若 child 达标则验证集评估并接受。典型「1+1 进化 + Pareto 前沿维护」结构。
+一次「迭代(slot)」= 选一个 parent → 在其可调产物基础上变异出 child → 在一批训练数据上 rollout parent 与 child → 比较分数 → 若 child 达标则验证集评估并接受。典型「1+1 进化 + Pareto 前沿维护」结构。
 
 ```mermaid
 flowchart TD
-    Start([初始 spec]) --> Root["create_root(initial_spec_dir) → 根候选 baseline (val)"]
+    Start([初始可调产物]) --> Root["create_root(initial_artifacts_dir) → 根候选 baseline (val)"]
     Root --> Loop{Budget 未耗尽 且 候选池非空?}
     Loop -- yes --> Select["EA.select(1) → cid (state: pending → evolving)"]
     Select --> B1
@@ -24,7 +24,7 @@ flowchart TD
 
     subgraph Evolve["_evolve_one(cid) 单 slot"]
         direction TB
-        B1["Rollout Parent (batch) → old_scores"] --> B2["Proposer.propose → 改 child spec"]
+        B1["Rollout Parent (batch) → old_scores"] --> B2["Proposer.propose → 改 child 可调产物"]
         B2 --> B3["Rollout Child (batch) → new_scores"]
         B3 --> Chk{"improvement 达阈值<br/>或全满分?"}
         Chk -- yes --> Acc["接受 child"]
@@ -36,7 +36,7 @@ flowchart TD
         Rej --> Pareto
     end
 
-    Loop -- no --> Best(["get_best_candidate() → 最佳 spec + changelog"])
+    Loop -- no --> Best(["get_best_candidate() → 最佳可调产物 + changelog"])
 ```
 
 ## 2. 顶层目录结构
@@ -51,10 +51,10 @@ antomnievo/
 ├── dataset/             # DataInst 子类与 loader 参照
 ├── store/               # LocalCandidateStore: 文件系统实现的 candidate 存储
 ├── evolution_algorithm/ # 进化算法: ParetoFrontierEvolutionAlgorithm
-├── model/               # pydantic 模型: CandidateMeta / RunAnalysis / ChangeLogEntry / Budget / spec_schema …
+├── model/               # pydantic 模型: CandidateMeta / RunAnalysis / ChangeLogEntry / Budget / tunable_artifact_schema …
 └── common/              # config / theta_llm / utils / tool(rag)
 visualizer/              # 独立的 React + Flask 可视化前端(单独的子包 `ant-omnievo-visualizer`)
-tasks/                   # 初始 spec 目录
+tasks/                   # 初始可调产物目录
 ```
 
 ## 3. 一个 slot 内发生了什么
@@ -89,7 +89,7 @@ sequenceDiagram
     Eval-->>Slot: old_scores then save run
 
     Slot->>P: propose parent new_id
-    Note over P: phase1 analyze agents in parallel<br/>phase2 mutate agent edits spec then append changelog
+    Note over P: phase1 analyze agents in parallel<br/>phase2 mutate agent 改可调产物再 append changelog
     P-->>Slot: success
 
     Slot->>Sys: run_batch child batch
@@ -128,7 +128,7 @@ sequenceDiagram
 ```
 {workspace_dir}/
 ├── candidates/{candidate_id}/           # 12-hex id (uuid4().hex[:12])
-│   ├── spec/                             # 可被变异的 spec 树(Phase-2 agent 的 cwd)
+│   ├── artifact/                             # 可被变异的可调产物树(Phase-2 agent 的 cwd)
 │   └── data/
 │       ├── meta.json                     # CandidateMeta
 │       ├── summary.json                  # CandidateSummary (val 分数)
@@ -146,15 +146,15 @@ sequenceDiagram
     └── parameters.jsonl                  # 每次 optimizer launch 一行(append-only)
 ```
 
-`CandidateMeta` 关键字段:`candidate_id` / `spec_dir` / `data_dir` / `parent_id` / `children_ids` / `created_at` / `state` / `epoch` / `dataset_index` / `generation` / `reflection_depth`。
+`CandidateMeta` 关键字段:`candidate_id` / `artifact_dir` / `data_dir` / `parent_id` / `children_ids` / `created_at` / `state` / `epoch` / `dataset_index` / `generation` / `reflection_depth`。
 
 状态机:`pending`(可被选)↔ `evolving`(占槽中)↔ `unavailable`(刚创建/已淘汰)。changelog append-only、child 继承 parent,所以 lineage 沿继承链累积;断点续跑靠状态机 + 启动恢复(`reset_evolving_to_pending` + 按 `cleanup_unavailable` 决定是否清理 unavailable)。无强制转换守卫,转换由主循环驱动。
 
 ## 5. Proposer:两阶段流程(让 Agent 优化系统)
 
-- **Phase 1 分析**(`_analyze`):`find_unanalyzed_runs` 找出比最新 analysis 新的 run,按 `data_id` 分组;**每个 data_id 并发起一个 coding agent**(cwd = parent `data_dir`),读 spec(只读)+ run 文件,产出一份 `RunAnalysis`(`trajectory_analysis` 观察 + `actions` 处方),跑 `validate-analysis` 自检。所有 per-data_id trajectory 合并落盘到 `analysis/trajectory/{new_id}.json`。
-- **Phase 2 变异**(`_mutate`):起一个 coding agent(cwd = child `spec_dir`),读多份 analysis、去重 / 消解矛盾、原地改文件、记下 `mtime_before`;跑完先落盘 Phase-2 trajectory 再判错(`trajectory.errors` 非空 → 失败;无文件改动 → 失败),然后**必须**跑 `append-changelog` 把 diff 追加到 `{new_data_dir}/changelog.jsonl`。
-- **`RunAnalysis`**:`data_id` + `trajectory_analysis: list[str]` + `actions: list[SpecAction]` + `data_quality_issues: list[str]`(与上面互斥)。`SpecAction` = `file`(相对 spec 根的具体路径)+ `operation`(add/delete/modify)+ `spec_issue`(诊断)+ `change`(modify 用 BEFORE/AFTER)+ `resolves[]`(回指 `trajectory_analysis` 下标,必须非空且在范围内)。
+- **Phase 1 分析**(`_analyze`):`find_unanalyzed_runs` 找出比最新 analysis 新的 run,按 `data_id` 分组;**每个 data_id 并发起一个 coding agent**(cwd = parent `data_dir`),读可调产物(只读)+ run 文件,产出一份 `RunAnalysis`(`trajectory_analysis` 观察 + `actions` 处方),跑 `validate-analysis` 自检。所有 per-data_id trajectory 合并落盘到 `analysis/trajectory/{new_id}.json`。
+- **Phase 2 变异**(`_mutate`):起一个 coding agent(cwd = child `artifact_dir`),读多份 analysis、去重 / 消解矛盾、原地改文件、记下 `mtime_before`;跑完先落盘 Phase-2 trajectory 再判错(`trajectory.errors` 非空 → 失败;无文件改动 → 失败),然后**必须**跑 `append-changelog` 把 diff 追加到 `{new_data_dir}/changelog.jsonl`。
+- **`RunAnalysis`**:`data_id` + `trajectory_analysis: list[str]` + `actions: list[ArtifactAction]` + `data_quality_issues: list[str]`(与上面互斥)。`ArtifactAction` = `file`(相对 artifact 根的具体路径)+ `operation`(add/delete/modify)+ `artifact_issue`(诊断)+ `change`(modify 用 BEFORE/AFTER)+ `resolves[]`(回指 `trajectory_analysis` 下标,必须非空且在范围内)。
 - **反思流程**(`reflect`):Phase 1 改用 `REFLECTION_ANALYSIS_PROMPT_TEMPLATE`,把整条链上下文(chain_id_path、逐题分数表带 Δ 列、归属化 changelog、每个链节对该 data_id 已有 analysis、链节 run 文件)**预加载进 prompt**,强制五法诊断 + A–I 诊断表,偏好 REMOVE/REPLACE、要求点名责任链节、找「丢失的赢点」。Phase 2 机制完全不变,链路学习只体现在 analysis JSON 一层。
 - **两个内置后端**只差用哪个 CLI:`ClaudeCodeProposer`(`claude --print --output-format stream-json --dangerously-skip-permissions …`)走 prompt 声明访问控制;`PiCodingAgentProposer`(`pi --mode json -e block-val-system-run.ts -e enforce-changelog-cli.ts …`)用 extension 硬拦「读 val」+「绕过 changelog CLI」。Pi 路线更受控。
 
@@ -169,8 +169,8 @@ sequenceDiagram
 
 ## 8. 设计要点小结
 
-1. **spec 是被优化对象,就是一目录文件** —— 让「优化」用成熟 coding agent 直接改文件,而非受限 DSL 搜参。
-2. **不限于 Agent** —— 凡「可编辑文件目录 + 可重复评估」的系统皆可(workflow / 单文件算法同理)。
+1. **可调产物是被优化对象,就是一目录文件** —— 让「优化」用成熟 coding agent 直接改文件,而非受限 DSL 搜参。
+2. **不限于 Agent** —— 凡「可调文件目录 + 可重复评估」的系统皆可(workflow / 单文件算法同理)。
 3. **两阶段分离 + 质量门** —— 分析结构化、变异去重消解矛盾,各自独立 prompt 与校验。
 4. **changelog 是 lineage 真相源** —— append-only、child 继承 parent,在不可靠 LLM 变异里维持可追溯。
 5. **val 集对 proposer 硬隔离** —— 防过拟合验证集。

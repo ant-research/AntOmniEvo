@@ -1,10 +1,10 @@
-"""Shared DESCRIPTION constants used by multiple spec_def modules.
+"""Shared DESCRIPTION constants used by multiple tunable_artifact_def modules.
 
-These describe generic, agent-agnostic parts of a skill spec directory
+These describe generic, agent-agnostic parts of a skill artifact directory
 (scripts/, references/, assets/, and free-form additional files). Individual
-spec_def modules (appworld, text2sql, agent_skill, ...) import from here so
+tunable_artifact_def modules (appworld, text2sql, agent_skill, ...) import from here so
 the wording stays in sync; when an agent needs a specialized variant, define
-it locally in that agent's spec_def module instead of editing these.
+it locally in that agent's tunable_artifact_def module instead of editing these.
 """
 
 _SCRIPTS_DIR_DESCRIPTION = """
@@ -36,7 +36,7 @@ Optional. Non-executable static resources: templates, images,
 lookup tables, schemas, configuration files."""
 
 _ADDITIONAL_FILES_DESCRIPTION = """
-You may add any additional files or directories to the spec.
+You may add any additional files or directories to the artifacts.
 Use them when the existing structure is insufficient to express a needed behavior change."""
 
 _PI_EXTENSIONS_DIR_DESCRIPTION = """\

@@ -45,17 +45,17 @@ def safe_listdir(path: str) -> list[str]:
         return []
 
 
-def list_spec_files(spec_dir: str) -> list[str]:
-    """Recursively list every file under spec_dir, as absolute paths.
+def list_artifact_files(artifact_dir: str) -> list[str]:
+    """Recursively list every file under artifact_dir, as absolute paths.
 
     Hidden files and directories (leading dot) are skipped — they're never part
-    of the candidate's spec, just editor / VCS noise. Order is deterministic
+    of the candidate's tunable artifacts, just editor / VCS noise. Order is deterministic
     (alphabetical full path) so the UI doesn't shuffle between requests.
     """
-    if not os.path.isdir(spec_dir):
+    if not os.path.isdir(artifact_dir):
         return []
     collected: list[str] = []
-    for root, dirs, files in os.walk(spec_dir):
+    for root, dirs, files in os.walk(artifact_dir):
         dirs[:] = sorted(d for d in dirs if not d.startswith('.'))
         for fname in sorted(f for f in files if not f.startswith('.')):
             collected.append(os.path.join(root, fname))
@@ -131,7 +131,7 @@ def candidate_detail_payload(store: CandidateStore, candidate_id: str) -> dict |
 
     summary = store.get_summary(candidate_id)
 
-    spec_files = list_spec_files(store.spec_dir(candidate_id))
+    artifact_files = list_artifact_files(store.artifact_dir(candidate_id))
 
     changelog_path = store.changelog_path(candidate_id)
     changelog = changelog_path if os.path.isfile(changelog_path) else None
@@ -199,7 +199,7 @@ def candidate_detail_payload(store: CandidateStore, candidate_id: str) -> dict |
     return {
         'meta': meta.model_dump(mode='json'),
         'summary': summary.model_dump(mode='json') if summary is not None else None,
-        'spec_files': spec_files,
+        'artifact_files': artifact_files,
         'changelog': changelog,
         'system_runs': system_runs,
         'system_run_scores': _build_run_scores(system_runs),

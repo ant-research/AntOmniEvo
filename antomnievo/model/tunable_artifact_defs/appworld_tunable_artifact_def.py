@@ -1,11 +1,11 @@
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _SCRIPTS_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-_APPWORLD_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the AppWorld coding agent's configurable behavior, \
+_APPWORLD_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the AppWorld coding agent's configurable behavior, \
 consisting of two subsystems:
 
 - `skill/` — the knowledge layer: SKILL.md (instructions, API usage patterns, \
@@ -42,7 +42,7 @@ location and removing or qualifying every other source.
 
 ### Generalization
 
-The spec optimizes a skill applied to many AppWorld tasks across many apps. \
+The artifacts optimizes a skill applied to many AppWorld tasks across many apps. \
 Every artifact — rules, references, scripts, extensions — must work on tasks \
 and apps it has never seen. When observing a failure on one task, extract the \
 underlying class of mistakes and prevent the whole class.
@@ -142,9 +142,9 @@ Procedure step using the exact form \
 `exec((SKILL_DIR / 'scripts/X.py').read_text())`.
 """
 
-APPWORLD_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_APPWORLD_SPEC_DIR_DESCRIPTION,
+APPWORLD_SKILL_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_APPWORLD_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FolderSchema(
             name="skill",
@@ -160,13 +160,13 @@ APPWORLD_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
 )
 
 # ---------------------------------------------------------------------------
-# Skill-only variant — a minimal spec with only SKILL.md (no references/,
+# Skill-only variant — a minimal artifact set with only SKILL.md (no references/,
 # scripts/, or other sub-directories). Used as a control variant in A/B
 # experiments to isolate the effect of the multi-file skill structure.
 # ---------------------------------------------------------------------------
 
-_APPWORLD_SKILL_ONLY_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the AppWorld coding agent's configurable behavior.
+_APPWORLD_SKILL_ONLY_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the AppWorld coding agent's configurable behavior.
 
 ## Available Tools
 
@@ -185,7 +185,7 @@ The agent writes Python code that is executed in a sandboxed REPL. Available API
 
 ### Generalization
 
-The spec optimizes a skill applied to many AppWorld tasks across many apps.
+The tunable artifacts optimize a skill applied to many AppWorld tasks across many apps.
 Every rule must work on tasks and apps it has never seen. When observing a
 failure on one task, extract the underlying class of mistakes and prevent
 the whole class.
@@ -199,7 +199,7 @@ _APPWORLD_SKILL_ONLY_MD_DESCRIPTION = """\
 Required. YAML frontmatter followed by Markdown instructions for the AppWorld \
 coding agent skill.
 
-This is the ONLY file in the spec — all guidance must be self-contained here.
+This is the ONLY file in the artifacts — all guidance must be self-contained here.
 
 ## Frontmatter
 
@@ -242,9 +242,9 @@ Answers must be minimal: entity names, numbers, not full sentences.>
 
 """
 
-APPWORLD_SKILL_ONLY_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_APPWORLD_SKILL_ONLY_SPEC_DIR_DESCRIPTION,
+APPWORLD_SKILL_ONLY_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_APPWORLD_SKILL_ONLY_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FolderSchema(
             name="skill",

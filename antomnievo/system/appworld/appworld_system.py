@@ -180,7 +180,7 @@ class AppWorldSystem(System):
         if not tmp_dir:
             raise ValueError("tmp_dir is required for AppWorldSystem.run_batch")
 
-        skill_dir = os.path.join(candidate_meta.spec_dir, "skill")
+        skill_dir = os.path.join(candidate_meta.artifact_dir, "skill")
         if not os.path.isdir(skill_dir):
             raise FileNotFoundError(f"Skill directory not found: {skill_dir}")
 

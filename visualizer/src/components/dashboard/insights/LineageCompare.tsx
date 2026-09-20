@@ -138,15 +138,15 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
       const valRuns = (detail.val_system_runs ?? {}) as Record<string, string[]>;
       const trainRuns = (detail.system_runs ?? {}) as Record<string, string[]>;
       const files = valRuns[dataId] ?? trainRuns[dataId] ?? [];
-      const specFiles = (detail.spec_files ?? []) as string[];
+      const artifactFiles = (detail.artifact_files ?? []) as string[];
       const changelog = (detail.changelog ?? null) as string | null;
 
       const lines = [
         `# Candidate: ${candidateId}`,
         `# Data ID: ${dataId}`,
         '',
-        '## Spec files',
-        ...specFiles,
+        '## Artifact files',
+        ...artifactFiles,
         '',
         '## Run files',
         ...(files.length > 0 ? files : ['(no run files found)']),
