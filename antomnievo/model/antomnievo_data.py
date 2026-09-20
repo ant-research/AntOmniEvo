@@ -41,7 +41,7 @@ class ChainNode(BaseModel):
         chain[1]  = v0  (the first failed child)
         chain[2]  = v1  (the first reflection attempt that also failed)
         ...
-        chain[-1] = v_{k-1}  (the most recent failed attempt; its spec is the
+        chain[-1] = v_{k-1}  (the most recent failed attempt; its tunable artifacts are the
                               starting point for the candidate being produced)
 
     Every node carries the evals it scored on the current batch — there is no

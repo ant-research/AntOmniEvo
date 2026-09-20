@@ -17,7 +17,7 @@ class RagPipelineOptimizer(Optimizer):
 
     Mirrors AppWorldOptimizer: overrides ``_run_and_evaluate`` to thread
     scenario-specific state (per-rollout temp working dirs + the candidate's
-    spec_dir + the predictions path) through ``RagPipelineSystem.run_batch`` and
+    artifact_dir + the predictions path) through ``RagPipelineSystem.run_batch`` and
     ``RagPipelineEvaluator.evaluate_batch``. The temp dir both isolates this
     rollout's generate.py/evaluate.py outputs and shares the predictions file
     from the run to the eval (the evaluator reuses it instead of re-running the
@@ -69,7 +69,7 @@ class RagPipelineOptimizer(Optimizer):
                 results,
                 eval_output_dir=eval_output_dir,
                 predictions_path=predictions_path,
-                spec_dir=meta.spec_dir,
+                artifact_dir=meta.artifact_dir,
             )
             t2 = time.monotonic()
             avg_score = sum(e.score for e in evals) / len(evals) if evals else 0.0

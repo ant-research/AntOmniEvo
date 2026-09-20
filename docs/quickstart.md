@@ -16,7 +16,7 @@ If your `System` / `Evaluator` shells out to your own runtime / scoring harness,
 
 ## Writing your own optimizer entry point
 
-AntOmniEvo is a framework: you write an entry-point script that wires the 7 pluggable components + your `SpecSchema` together and calls `await optimizer.optimize()`. The scripts under `antomnievo/example/` are **reference implementations** (each wires the components for a different system shape) — copy the one matching your system, then swap in your own `System` / `Evaluator` / `DataInst` / `SpecSchema` / initial spec.
+AntOmniEvo is a framework: you write an entry-point script that wires the 7 pluggable components + your `TunableArtifactSchema` together and calls `await optimizer.optimize()`. The scripts under `antomnievo/example/` are **reference implementations** (each wires the components for a different system shape) — copy the one matching your system, then swap in your own `System` / `Evaluator` / `DataInst` / `TunableArtifactSchema` / initial tunable artifacts.
 
 Entry-point shape: load train/val data → build a timestamped `workspace/` → construct the components → `await optimizer.optimize()`. For the concrete wiring:
 
@@ -31,7 +31,7 @@ from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvoluti
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
 # Replace these four with your own:
-from antomnievo.model.spec_defs.myagent_spec_def import MY_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.myagent_tunable_artifact_def import MY_TUNABLE_ARTIFACT_SCHEMA
 from antomnievo.system.myagent.myagent_system import MySystem
 from antomnievo.evaluator.myagent.myagent_evaluator import MyEvaluator
 from antomnievo.dataset.myagent.myagent_dataset_loader import load_dataset
@@ -53,7 +53,7 @@ async def main():
     system    = MySystem(concurrency=8, api_key="…", base_url="…")
     evaluator = MyEvaluator()
     proposer  = PiCodingAgentProposer(
-        api_key="…", spec_schema=MY_SPEC_SCHEMA, candidate_store=store,
+        api_key="…", tunable_artifact_schema=MY_TUNABLE_ARTIFACT_SCHEMA, candidate_store=store,
         evaluator=evaluator, data_schema=CANDIDATE_DATA_SCHEMA,
         model="…", provider="anthropic", concurrency=20, max_turns=200, timeout=3600,
         system=system, skip_perfect_score_runs=False, last_n_analysis=10,
@@ -64,7 +64,7 @@ async def main():
         train_dataset=train, val_dataset=val,
         batch_size=3, budget=Budget(max_iterations=1000),
         num_proposals=1, max_reflection_iterations=2, min_improvement_per_batch=2.0,
-        initial_spec_dir="/path/to/tasks/myagent-base",
+        initial_artifacts_dir="/path/to/tasks/myagent-base",
     )
     await optimizer.optimize()
 

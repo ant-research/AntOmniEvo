@@ -252,7 +252,7 @@ class ReactAgent:
             def _resolve_tool_name(name: str) -> str | None:
                 if name in self.tools_by_name:
                     return name
-                # LLM may generate prefixed names like "skills.read_spec_file"
+                # LLM may generate prefixed names like "skills.read_artifact_file"
                 short_name = name.rsplit(".", 1)[-1]
                 if short_name in self.tools_by_name:
                     logger.warning(f"Tool name '{name}' resolved to '{short_name}'")

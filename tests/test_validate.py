@@ -19,7 +19,7 @@ class TestValidateAnalysis:
                 {
                     "file": "SKILL.md",
                     "operation": "add",
-                    "spec_issue": "No decomposition rule for multi-hop questions",
+                    "artifact_issue": "No decomposition rule for multi-hop questions",
                     "change": "Add a step-by-step decomposition rule in the Procedure section",
                     "resolves": [0],
                 }
@@ -102,7 +102,7 @@ class TestValidateAnalysis:
                 {
                     "file": "",
                     "operation": "add",
-                    "spec_issue": "Missing decomposition strategy",
+                    "artifact_issue": "Missing decomposition strategy",
                     "change": "Add decomposition rule",
                     "resolves": [0],
                 }

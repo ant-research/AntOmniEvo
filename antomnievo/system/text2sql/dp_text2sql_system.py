@@ -244,7 +244,7 @@ class DPText2SQLSystem(System):
     """System implementation that runs text2sql tasks via Harbor's run.sh script.
 
     Uses pre-prepared Harbor task directories (``harbor_tasks_train/`` etc.).
-    For each data instance, injects the current candidate spec into the task
+    For each data instance, injects the current candidate tunable artifacts into the task
     directory as the ``data-text2sql`` skill, runs ``run.sh`` to
     execute Harbor, and parses the results from the jobs output directory.
 
@@ -348,7 +348,7 @@ class DPText2SQLSystem(System):
             data_list: Data instances to run.
             job_name: Optional job name for the Harbor run (``-j`` flag).
             dataset_dir: Directory containing prepared task directories
-                (with spec already injected by the caller).
+                (with tunable artifacts already injected by the caller).
             output_dir: Directory for Harbor job output (``-o`` flag).
         """
         batch_job_dir = os.path.join(output_dir, job_name)

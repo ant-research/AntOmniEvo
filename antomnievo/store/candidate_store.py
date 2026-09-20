@@ -33,7 +33,7 @@ def _gen_candidate_id() -> str:
 
 
 class LocalCandidateStore(CandidateStore):
-    """Filesystem-based storage for candidate specs and data, with in-memory cache.
+    """Filesystem-based storage for candidate artifacts and data, with in-memory cache.
 
     Concrete implementation of the :class:`antomnievo.interface.candidate_store.CandidateStore`
     contract, persisting to a local directory tree. See that interface's docstring
@@ -45,7 +45,7 @@ class LocalCandidateStore(CandidateStore):
         workspace_dir/
         └── candidates/
             └── {candidate_id}/
-                ├── spec/
+                ├── artifact/
                 └── data/
                     ├── meta.json
                     ├── changelog.jsonl
@@ -96,8 +96,8 @@ class LocalCandidateStore(CandidateStore):
     def candidate_dir(self, candidate_id: str) -> str:
         return os.path.join(self.candidates_dir, candidate_id)
 
-    def spec_dir(self, candidate_id: str) -> str:
-        return os.path.join(self.candidate_dir(candidate_id), "spec")
+    def artifact_dir(self, candidate_id: str) -> str:
+        return os.path.join(self.candidate_dir(candidate_id), "artifact")
 
     def data_dir(self, candidate_id: str) -> str:
         return os.path.join(self.candidate_dir(candidate_id), "data")
@@ -144,11 +144,11 @@ class LocalCandidateStore(CandidateStore):
         except (json.JSONDecodeError, Exception) as e:
             logger.warning(f"Failed to read meta.json for {candidate_id}: {e}")
             return None
-        # spec_dir / data_dir are deliberately not persisted (they're a pure
+        # artifact_dir / data_dir are deliberately not persisted (they're a pure
         # function of candidates_dir + candidate_id); re-derive on load so the
         # in-memory object still carries them for consumers that read
-        # ``candidate_meta.spec_dir`` / ``.data_dir``.
-        meta.spec_dir = self.spec_dir(candidate_id)
+        # ``candidate_meta.artifact_dir`` / ``.data_dir``.
+        meta.artifact_dir = self.artifact_dir(candidate_id)
         meta.data_dir = self.data_dir(candidate_id)
         return meta
 
@@ -156,8 +156,8 @@ class LocalCandidateStore(CandidateStore):
         path = os.path.join(self.data_dir(candidate_id), "meta.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            # spec_dir / data_dir are not persisted — re-derived on load.
-            f.write(meta.model_dump_json(indent=2, exclude={"spec_dir", "data_dir"}))
+            # artifact_dir / data_dir are not persisted — re-derived on load.
+            f.write(meta.model_dump_json(indent=2, exclude={"artifact_dir", "data_dir"}))
 
     def _read_summary_from_disk(self, candidate_id: str) -> CandidateSummary | None:
         path = os.path.join(self.data_dir(candidate_id), "summary.json")
@@ -185,17 +185,17 @@ class LocalCandidateStore(CandidateStore):
         os.makedirs(self.analysis_result_dir(candidate_id), exist_ok=True)
         os.makedirs(self.mutation_trajectory_dir(candidate_id), exist_ok=True)
 
-    def create_root(self, state: CandidateState = "unavailable", initial_spec_dir: str | None = None) -> CandidateMeta:
+    def create_root(self, state: CandidateState = "unavailable", initial_artifacts_dir: str | None = None) -> CandidateMeta:
         candidate_id = _gen_candidate_id()
-        if initial_spec_dir:
-            shutil.copytree(initial_spec_dir, self.spec_dir(candidate_id))
+        if initial_artifacts_dir:
+            shutil.copytree(initial_artifacts_dir, self.artifact_dir(candidate_id))
         else:
-            os.makedirs(self.spec_dir(candidate_id), exist_ok=True)
+            os.makedirs(self.artifact_dir(candidate_id), exist_ok=True)
         self._init_candidate_data_dirs(candidate_id)
 
         meta = CandidateMeta(
             candidate_id=candidate_id,
-            spec_dir=self.spec_dir(candidate_id),
+            artifact_dir=self.artifact_dir(candidate_id),
             data_dir=self.data_dir(candidate_id),
             created_at=datetime.now(),
             generation=0,
@@ -219,7 +219,7 @@ class LocalCandidateStore(CandidateStore):
             return None
 
         child_id = _gen_candidate_id()
-        shutil.copytree(self.spec_dir(parent_id), self.spec_dir(child_id))
+        shutil.copytree(self.artifact_dir(parent_id), self.artifact_dir(child_id))
         self._init_candidate_data_dirs(child_id)
 
         parent_changelog = self.changelog_path(parent_id)
@@ -229,7 +229,7 @@ class LocalCandidateStore(CandidateStore):
         parent_meta = self.get_meta(parent_id)
         child_meta = CandidateMeta(
             candidate_id=child_id,
-            spec_dir=self.spec_dir(child_id),
+            artifact_dir=self.artifact_dir(child_id),
             data_dir=self.data_dir(child_id),
             parent_id=parent_id,
             created_at=datetime.now(),

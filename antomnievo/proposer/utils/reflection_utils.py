@@ -14,7 +14,7 @@ Chain semantics recap (see also ``ChainNode``)::
 Key cross-candidate relationships:
 
 * **Changelog** accumulates: ``chain[i].changelog == chain[i-1].changelog + [the
-  entry chain[i] added when its spec was mutated]``. So the node at index ``i``
+  entry chain[i] added when its tunable artifacts were mutated]``. So the node at index ``i``
   in the chain authored ``chain[i].changelog[len(chain[i-1].changelog):]``.
   The root's changelog entries pre-existed the mara chain.
 * **Analysis files**: ``candidate X``'s ``analysis/result/{data_id}.json`` is

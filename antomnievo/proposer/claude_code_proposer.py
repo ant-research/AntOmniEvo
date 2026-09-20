@@ -5,8 +5,8 @@ from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.interface.evaluator import Evaluator
 from antomnievo.interface.system import System
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_schema import SpecSchema
 from antomnievo.model.trajectory import Trajectory
+from antomnievo.model.tunable_artifact_schema import TunableArtifactSchema
 from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.base_proposer import BaseProposer
 from antomnievo.proposer.utils.claude_code_utils import (
@@ -26,7 +26,7 @@ class ClaudeCodeProposer(BaseProposer):
     the agent session.
 
     Phase 2 (Propose): Invokes Claude Code with a propose-specific prompt to
-    read analysis results and propose targeted spec modifications.
+    read analysis results and propose targeted tunable-artifact modifications.
 
     Why a separate analysis phase?
         As runs accumulate, reading all run records in the propose phase becomes
@@ -41,11 +41,11 @@ class ClaudeCodeProposer(BaseProposer):
 
     def __init__(
         self,
-        spec_schema: SpecSchema,
+        tunable_artifact_schema: TunableArtifactSchema,
         candidate_store: CandidateStore,
         evaluator: Evaluator,
         system: System | None = None,
-        data_schema: SpecSchema = CANDIDATE_DATA_SCHEMA,
+        data_schema: TunableArtifactSchema = CANDIDATE_DATA_SCHEMA,
         claude_code_path: str = "claude",
         model: str = "kimi-k2.5",
         max_turns: int = 150,
@@ -61,7 +61,7 @@ class ClaudeCodeProposer(BaseProposer):
     ):
         """
         Args:
-            spec_schema: Schema describing the spec directory structure to optimize.
+            tunable_artifact_schema: Schema describing the tunable-artifact directory structure to optimize.
             candidate_store: Store for reading/writing candidate data and metadata.
             evaluator: Evaluator whose scoring criteria will be injected into the analysis prompt.
             system: System whose description will be injected into the analysis prompt.
@@ -92,7 +92,7 @@ class ClaudeCodeProposer(BaseProposer):
                 agent from proposing unnecessary changes to already-perfect cases.
         """
         super().__init__(
-            spec_schema=spec_schema,
+            tunable_artifact_schema=tunable_artifact_schema,
             candidate_store=candidate_store,
             evaluator=evaluator,
             system=system,

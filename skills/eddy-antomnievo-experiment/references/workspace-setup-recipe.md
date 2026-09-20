@@ -6,7 +6,7 @@
 
 "workspace" 拆成两个**不同**概念(详见 SKILL.md『两个目录概念』):
 
-- **实验根目录(`<exp_root>`)**:整个实验的**非候选**产物 —— **本实验组件目录(`<exp_root>/antomnievo/`,默认;不是源码 clone —— AntOmniEvo 一律 pip 装包,这里放本实验补充的组件 + 入口脚本 + 最小 pyproject;venv 也在里面:`<exp_root>/antomnievo/.venv/`,是 AntOmniEvo 的专用环境)**、`NOTES.md`、config YAML、`run.env`、`tests/`、`initial_spec/`。**每实验自包含**(组件目录 + venv 都在 exp_root 内,不共享外部 venv);一个实验一个,跨多次 run 复用。
+- **实验根目录(`<exp_root>`)**:整个实验的**非候选**产物 —— **本实验组件目录(`<exp_root>/antomnievo/`,默认;不是源码 clone —— AntOmniEvo 一律 pip 装包,这里放本实验补充的组件 + 入口脚本 + 最小 pyproject;venv 也在里面:`<exp_root>/antomnievo/.venv/`,是 AntOmniEvo 的专用环境)**、`NOTES.md`、config YAML、`run.env`、`tests/`、`initial_artifacts/`。**每实验自包含**(组件目录 + venv 都在 exp_root 内,不共享外部 venv);一个实验一个,跨多次 run 复用。
 - **candidate store 根目录(`<candidate_store_root>`)**:**单独一个目录,只放优化 run 的候选数据**;里边每次 run 一个时间戳子目录 `<run_dir> = <candidate_store_root>/run_YYYYMMDD_HHMMSS/`(= `LocalCandidateStore(workspace_dir=<run_dir>)` 的落盘路径)。**resume = 同一个 `<run_dir>`;新 run = 新时间戳子目录。**
 
 ## 1. 让用户定两个路径
@@ -14,7 +14,7 @@
 主动问用户(都要绝对路径、独立、可写、不和业务项目混),确认再往下。**问法:给候选 + 允许自输,别开放式问** —— 给 2~3 个**具体候选路径**让用户挑,也允许用户自己输入;候选按当前环境推断(如 `<cwd>/exp-<agent>`、`<work_root>/exp-<agent>`),每个候选附一句取舍说明;用户确认前不动手:
 
 - **`<exp_root>`** 放哪;
-- **`<candidate_store_root>`** 放哪(候选给:默认 `<exp_root>/workspace`(**推荐**)、`<exp_root>/candidate_store/`、独立路径(候选数据 = spec 树 × 候选 × 代,体积可能很大,想放别的盘就独立路径,用户自输))。
+- **`<candidate_store_root>`** 放哪(候选给:默认 `<exp_root>/workspace`(**推荐**)、`<exp_root>/candidate_store/`、独立路径(候选数据 = 可调产物树 × 候选 × 代,体积可能很大,想放别的盘就独立路径,用户自输))。
 
 ```
 <exp_root>/                      # 实验根目录(步骤 1 创建)
@@ -22,17 +22,17 @@
     .venv/                       # AntOmniEvo 专用 python 环境(python ≥ 3.12;pip install ant-omnievo)
     pyproject.toml               # 最小打包,让 <scenario>/ 场景包可 import(uv pip install -e .)
     <scenario>/                  # 本场景组件包(如 peizhiagent/)
-      dataset/  spec_defs/  system/  evaluator/  optimizer/  scripts/  <domain>_optimize.py
+      dataset/  tunable_artifact_defs/  system/  evaluator/  optimizer/  scripts/  <domain>_optimize.py
   NOTES.md                       # 实验记忆(每步追加)
   opt_config.yaml                # config YAML(步骤 10 写;secrets 在这)
   run.env                        # 入口从 YAML 物化(步骤 10)
-  initial_spec/                  # 抽出的 initial spec(步骤 9/10)
+  initial_artifacts/                  # 抽出的初始可调产物(步骤 9/10)
   tests/<smoke_name>/            # 冒烟/测试产物(保留不清)
   examples/                      # (可选)从 antomnievo/example/ 拷来的入口脚本、改写的 entry-point
 
 <candidate_store_root>/          # candidate store 根目录(单独目录;步骤 1 只建根,不建 run 子目录)
   run_YYYYMMDD_HHMMSS/           # <run_dir>:每次优化 run 一个时间戳子目录(步骤 10 optimize() 时才建)
-    candidates/<candidate id>/   #   各 candidate:spec 树 / meta / changelog / best / run 产物
+    candidates/<candidate id>/   #   各 candidate:可调产物树 / meta / changelog / best / run 产物
     logs/statistics.json         #   优化统计(resume 判定:有无 root_candidate_id)
 ```
 
@@ -43,7 +43,7 @@
 路径定了后,**建 `<exp_root>/antomnievo/`(本实验组件目录,非源码 clone)**,并在其中**创建一个专供 AntOmniEvo 使用的 python 环境**(`<exp_root>/antomnievo/.venv/`,python ≥ 3.12):
 
 ```bash
-# 建组件目录(本实验补充的 dataset/spec_def/System/Evaluator/Optimizer/入口脚本都放这)
+# 建组件目录(本实验补充的 dataset/tunable_artifact_def/System/Evaluator/Optimizer/入口脚本都放这)
 mkdir -p <exp_root>/antomnievo
 
 # 在其中建 AntOmniEvo 专用 venv(python ≥ 3.12)
@@ -55,7 +55,7 @@ uv pip install ant-omnievo --python <exp_root>/antomnievo/.venv/bin/python
 # 问用户要不要可视化前端:要 → 装 visualizer 包(README §9;前端 React 还要 npm install)
 uv pip install ant-omnievo-visualizer --python <exp_root>/antomnievo/.venv/bin/python
 
-# 组件目录放最小 pyproject + editable 装进同一 venv → 场景包可 import(PYTHONPATH 兜底)
+# 组件目录放最小 pyproject + editable-install 装进同一 venv → 场景包可 import(PYTHONPATH 兜底)
 uv pip install -e <exp_root>/antomnievo --python <exp_root>/antomnievo/.venv/bin/python
 ```
 

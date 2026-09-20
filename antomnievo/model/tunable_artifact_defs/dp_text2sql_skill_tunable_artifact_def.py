@@ -1,12 +1,12 @@
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _ASSETS_DIR_DESCRIPTION,
     _REFERENCES_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-_TEXT2SQL_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the NL2SQL agent's complete configurable behavior
+_TEXT2SQL_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the NL2SQL agent's complete configurable behavior
 
 the knowledge layer: SKILL.md, reference files, scripts, examples that guide \
 the agent's reasoning and SQL generation strategy.
@@ -37,7 +37,7 @@ reconcile it.
 
 ### Generalization
 
-The spec optimizes a skill that will be applied to many databases, so \
+The tunable artifacts optimize a skill that will be applied to many databases, so \
 every artifact — Markdown rules, reference files, scripts — must work on \
 schemas it has never seen. An artifact that only fires on one specific schema is dead \
 weight on every other schema. When you observe a failure on one instance, extract the \
@@ -94,7 +94,7 @@ Required. YAML frontmatter followed by Markdown instructions for the NL2SQL skil
 SQL", "database query" so the skill triggers reliably. Be slightly "pushy" to combat \
 under-triggering.
 - Other optional fields (argument-hint, user-invokable, disable-model-invocation, \
-allowed-tools) follow the standard agent-skill spec.
+allowed-tools) follow the standard agent-skill schema.
 
 ## Body structure
 
@@ -179,7 +179,7 @@ returning NULL." """
 _TEXT2SQL_SCRIPTS_DIR_DESCRIPTION = """
 Optional but PREFERRED for verification gates. Executable code the agent invokes via the \
 bash tool. Scripts produce structured outputs the agent consumes verbatim — the strongest \
-enforcement mechanism in this spec.
+enforcement mechanism in these tunable artifacts.
 ## Script contract
 Every script in this directory MUST:
 1. Print structured output to stdout — JSON for multi-field results, or a single ASCII \
@@ -256,9 +256,9 @@ phrases that drove each decision.
 Scenario and Key Takeaway must describe the general pattern.
 - Keep each file under 150 lines. If longer, split into two narrower examples."""
 
-TEXT2SQL_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_TEXT2SQL_SPEC_DIR_DESCRIPTION,
+TEXT2SQL_SKILL_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_TEXT2SQL_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FileSchema(name="SKILL.md", description=_TEXT2SQL_SKILL_MD_DESCRIPTION),
         FolderSchema(name="scripts", description=_TEXT2SQL_SCRIPTS_DIR_DESCRIPTION),

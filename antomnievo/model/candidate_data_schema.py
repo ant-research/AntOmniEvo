@@ -1,5 +1,5 @@
 from antomnievo.model.candidate_data import CandidateMeta, CandidateSummary, ChangeLogEntry, RunAnalysis, RunRecord
-from antomnievo.model.spec_schema import FileSchema, FolderSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema
 
 """
 Candidate data directory layout:
@@ -96,7 +96,7 @@ CANDIDATE_DATA_SCHEMA = FolderSchema(
                             name="{child_id}.json",
                             description=(
                                 "Mutation phase trajectory: the trace of the mutation agent reading "
-                                "analysis and modifying the spec. Contains the full trace of "
+                                "analysis and modifying the tunable artifacts. Contains the full trace of "
                                 "the agent's reasoning, tool calls (file reads, edits, diff), "
                                 "and final result."
                             ),
@@ -110,6 +110,6 @@ CANDIDATE_DATA_SCHEMA = FolderSchema(
 
 
 if __name__ == "__main__":
-    from antomnievo.model.spec_schema import render_spec_schema
+    from antomnievo.model.tunable_artifact_schema import render_tunable_artifact_schema
 
-    print(render_spec_schema(CANDIDATE_DATA_SCHEMA))
+    print(render_tunable_artifact_schema(CANDIDATE_DATA_SCHEMA))

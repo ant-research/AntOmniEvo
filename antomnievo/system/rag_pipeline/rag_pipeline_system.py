@@ -20,8 +20,8 @@ _RAG_PIPELINE_SYSTEM_DESCRIPTION = """\
 Retrieval Pipeline System:
 
 A deterministic retrieval DAG whose nodes may call models (embedding dense
-recall, cross-encoder rerank, LLM query rewrite). The optimized system is the
-spec directory: ``pipeline.json`` (ordered nodes + params), ``nodes/*.py`` (one
+recall, cross-encoder rerank, LLM query rewrite). The optimized system is the tunable-artifact directory:
+``pipeline.json`` (ordered nodes + params), ``nodes/*.py`` (one
 ``run(query, hits, params, ctx) -> list[Hit]`` per node TYPE), and ``prompt/*.md``
 (prompt templates nodes read at run time).
 
@@ -92,11 +92,11 @@ def _load_trajectory(path: str, query_id: str) -> Trajectory:
 
 
 class RagPipelineSystem(System):
-    """System that runs a retrieval-pipeline spec via retrieval-test's generate.py.
+    """System that runs the retrieval-pipeline tunable artifacts via retrieval-test's generate.py.
 
     Mirrors AppWorldSystem: ``_run`` is unused (raises); all execution goes
     through ``run_batch``, which shells out to ``generate.py`` in the
-    retrieval-test venv. The subprocess loads ``candidate_meta.spec_dir`` (the
+    retrieval-test venv. The subprocess loads ``candidate_meta.artifact_dir`` (the
     pipeline DAG the Proposer mutates), runs it over the batch's queries, and
     writes ``predictions.jsonl`` + per-query trajectories to ``run_output_dir``.
     """
@@ -160,11 +160,11 @@ class RagPipelineSystem(System):
         return preds
 
     def _build_cmd(
-        self, spec_dir: str, queries_path: str, output_dir: str, corpus_path: str
+        self, artifact_dir: str, queries_path: str, output_dir: str, corpus_path: str
     ) -> list[str]:
         cmd = [
             self.retrieval_test_python, self._generate_script,
-            "--spec-dir", spec_dir,
+            "--artifact-dir", artifact_dir,
             "--queries", queries_path,
             "--output-dir", output_dir,
         ]
@@ -212,10 +212,10 @@ class RagPipelineSystem(System):
         self._write_queries(data_list, queries_path)
 
         effective_corpus = getattr(data_list[0], "corpus_path", "")
-        cmd = self._build_cmd(candidate_meta.spec_dir, queries_path, run_output_dir, effective_corpus)
+        cmd = self._build_cmd(candidate_meta.artifact_dir, queries_path, run_output_dir, effective_corpus)
         logger.info(
-            "Running generate.py: %d queries, spec_dir=%s, corpus=%s",
-            len(data_list), candidate_meta.spec_dir, effective_corpus or "(none)",
+            "Running generate.py: %d queries, artifact_dir=%s, corpus=%s",
+            len(data_list), candidate_meta.artifact_dir, effective_corpus or "(none)",
         )
 
         t0 = time.monotonic()

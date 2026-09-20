@@ -1,12 +1,12 @@
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _PI_EXTENSIONS_DIR_DESCRIPTION,
     _REFERENCES_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-_TEXT2SQL_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the NL2SQL agent's complete configurable behavior, consisting of \
+_TEXT2SQL_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the NL2SQL agent's complete configurable behavior, consisting of \
 two subsystems:
 
 - `skill/` — the knowledge layer: SKILL.md, reference files, scripts, examples that guide \
@@ -68,7 +68,7 @@ reconcile it.
 
 **Contradiction detection procedure** — before writing any new rule:
 
-1. Search the existing spec for the same concept. If guidance already exists, your change \
+1. Search the existing artifacts for the same concept. If guidance already exists, your change \
 must be compatible or explicitly replace it.
 2. Unconditional rules ("always X", "never X") are dangerous — they will conflict with any \
 scenario where the opposite is correct. Prefer decision tables with distinguishing \
@@ -78,7 +78,7 @@ handled by the new version. If not, restructure as a decision table that preserv
 
 ### Generalization
 
-The spec optimizes a skill and extensions that will be applied to many databases, so \
+The tunable artifacts optimize a skill and extensions that will be applied to many databases, so \
 every artifact — Markdown rules, reference files, scripts, AND extensions — must work on \
 schemas it has never seen. An artifact that only fires on one specific schema is dead \
 weight on every other schema. When you observe a failure on one instance, extract the \
@@ -146,7 +146,7 @@ if (cmd.includes("query-db")) { hasVerified = true; }
 
 ## Choosing the right layer: extension, script, skill
 
-The spec has three layers with increasing determinism. **Prefer the most deterministic \
+The tunable artifacts have three layers with increasing determinism. **Prefer the most deterministic \
 layer that fits the problem** — code you can guarantee beats rules the LLM might ignore.
 
 - **Extensions** (extensions/*.ts) — the PREFERRED layer. Hook into the agent's full \
@@ -202,7 +202,7 @@ Required. YAML frontmatter followed by Markdown instructions for the NL2SQL skil
 SQL", "database query" so the skill triggers reliably. Be slightly "pushy" to combat \
 under-triggering.
 - Other optional fields (argument-hint, user-invokable, disable-model-invocation, \
-allowed-tools) follow the standard agent-skill spec.
+allowed-tools) follow the standard agent-skill schema.
 
 ## Body structure
 
@@ -287,7 +287,7 @@ returning NULL." """
 _TEXT2SQL_SCRIPTS_DIR_DESCRIPTION = """
 Optional but PREFERRED for verification gates. Executable code the agent invokes via the \
 bash tool. Scripts produce structured outputs the agent consumes verbatim — the strongest \
-enforcement mechanism in this spec.
+enforcement mechanism in these tunable artifacts.
 ## Script contract
 Every script in this directory MUST:
 1. Print structured output to stdout — JSON for multi-field results, or a single ASCII \
@@ -378,9 +378,9 @@ at the runtime level and physically prevents the agent from producing invalid ou
 analyzing failures, prioritize modifying this file over adding more prompt text.
 """
 
-TEXT2SQL_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_TEXT2SQL_SPEC_DIR_DESCRIPTION,
+TEXT2SQL_SKILL_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_TEXT2SQL_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FolderSchema(name="skill", description=_TEXT2SQL_SKILL_DIR_DESCRIPTION, files=[
             FileSchema(name="SKILL.md", description=_TEXT2SQL_SKILL_MD_DESCRIPTION),

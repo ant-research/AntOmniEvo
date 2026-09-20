@@ -90,9 +90,9 @@ class TerminalBenchOptimizer(Optimizer):
     """Optimizer for Terminal-Bench 2.
 
     Simpler than the dp_text2sql optimizer: because ``tbtest generate`` mounts
-    the spec via ``--spec-dir`` (yaml mount rewrite), there is no need to copy
+    the tunable artifacts via ``--artifact-dir`` (yaml mount rewrite), there is no need to copy
     task directories or rewrite Dockerfiles per rollout. Each rollout just
-    points at the shared dataset dir and passes ``candidate_meta.spec_dir``.
+    points at the shared dataset dir and passes ``candidate_meta.artifact_dir``.
 
     Only a tmp output dir is created per rollout so Harbor artifacts don't
     accumulate on disk; Docker containers/images/networks matching

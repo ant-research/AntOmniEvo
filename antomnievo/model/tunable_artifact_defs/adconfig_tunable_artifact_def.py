@@ -1,7 +1,7 @@
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-_ADCONFIG_AGENT_SPEC_DESCRIPTION = """\
-The ad-config agent's editable behavior package (`agents/`). The agent turns a
+_ADCONFIG_AGENT_ARTIFACT_DESCRIPTION = """\
+The ad-config agent's tunable behavior package (`agents/`). The agent turns a
 natural-language config-change request (offline-replay baseline: a config base
 version + a source-code revision) into a structured config edit
 (`textproto_edit_result`), stopping at a human-in-the-loop gate before any
@@ -40,10 +40,10 @@ Subpackages:
 - **Don't couple to a single test case / value**: rules about base_version /
   target values must be data-driven from the case gold, never hardcoded.
 
-## Non-editable (do NOT mutate — runtime/base, not behavior)
+## Non-tunable (do NOT mutate — runtime/base, not behavior)
 `config/`, `main.py`/`app.py`/`solution.py` (platform wiring), `knowledge_data/*.jsonl`
 (heavy non-behavior data), `runtime_env`, the eddy/arec/antmcp SDK. Only the
-`agents/` editable package above is the spec.
+`agents/` tunable package above is the tunable artifact.
 """
 
 _ADCONFIG_STARTER_AGENT_DESCRIPTION = """\
@@ -63,7 +63,7 @@ eval-mode sandbox-transport + skill_only_workspace (the VFS the write-type agent
 needs to produce artifacts). Don't break the eval-mode VFS path."""
 
 _ADCONFIG_SKILLS_DESCRIPTION = """\
-Domain skills (e.g. ad-search-pos). Skill files are editable behavior; keep them
+Domain skills (e.g. ad-search-pos). Skill files are tunable behavior; keep them
 general + importable."""
 
 _ADCONFIG_KNOWLEDGE_DESCRIPTION = """\
@@ -81,12 +81,12 @@ importable + general; don't hardcode one config type or test case."""
 
 _ADCONFIG_WORKSPACE_DESCRIPTION = """\
 Workspace settings (context, identity, repo_registry, skill_sync, workspace).
-Runtime identity/session/workspace management; usually stable, editable to fix
+Runtime identity/session/workspace management; usually stable, tunable to fix
 identity/session/registry issues. Keep importable."""
 
-ADCONFIG_AGENT_SPEC_SCHEMA: SpecSchema = FolderSchema(
+ADCONFIG_AGENT_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
     name="agents",
-    description=_ADCONFIG_AGENT_SPEC_DESCRIPTION,
+    description=_ADCONFIG_AGENT_ARTIFACT_DESCRIPTION,
     files=[
         FileSchema(name="starter_agent.py", description=_ADCONFIG_STARTER_AGENT_DESCRIPTION),
         FolderSchema(name="tools", description=_ADCONFIG_TOOLS_DESCRIPTION),

@@ -4,7 +4,7 @@ Terminal-Bench 2 Auto-Optimizer entry point.
 
 Uses TerminalBenchSystem (tbtest generate + harbor) + TerminalBenchEvaluator
 + PiCodingAgentProposer + ParetoFrontierEvolutionAlgorithm to optimize the
-Pi coding agent's spec (skill / memory / extension) against the Terminal-
+Pi coding agent's tunable artifacts (skill / memory / extension) against the Terminal-
 Bench 2 dataset.
 
 Train/val both read the full ``terminalbench2/dataset`` directly (no separate
@@ -24,7 +24,9 @@ from antomnievo.evaluator.terminalbench.terminalbench_evaluator import TerminalB
 from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvolutionAlgorithm
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_defs.terminalbench_kira_spec_def import TERMINALBENCH_KIRA_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.terminalbench_kira_tunable_artifact_def import (
+    TERMINALBENCH_KIRA_TUNABLE_ARTIFACT_SCHEMA,
+)
 from antomnievo.optimizer.terminalbench.terminalbench_optimizer import TerminalBenchOptimizer
 from antomnievo.proposer.pi_coding_agent_proposer import PiCodingAgentProposer
 from antomnievo.store.candidate_store import LocalCandidateStore
@@ -45,7 +47,7 @@ logger = logging.getLogger(__name__)
 TERMINALBENCH_DIR = os.path.expanduser("~/work/terminalbench2")
 GENERATE_BIN = os.path.join(TERMINALBENCH_DIR, ".venv", "bin", "generate")
 JOB_CONFIG_YAML = os.path.join(TERMINALBENCH_DIR, "test", "job-config-kira.yaml")
-INITIAL_SPEC_DIR = os.path.join(TERMINALBENCH_DIR, "spec", "kira")
+INITIAL_ARTIFACTS_DIR = os.path.join(TERMINALBENCH_DIR, "spec", "kira")
 
 # Model + litellm provider prefix. TerminalBenchSystem forwards ``model`` to
 # ``tbtest generate``'s ``-m`` / ``ANTHROPIC_MODEL``; litellm needs the
@@ -113,7 +115,7 @@ async def main():
 
     proposer = PiCodingAgentProposer(
         api_key=ANTCHAT_API_KEYS[4],
-        spec_schema=TERMINALBENCH_KIRA_SPEC_SCHEMA,
+        tunable_artifact_schema=TERMINALBENCH_KIRA_TUNABLE_ARTIFACT_SCHEMA,
         candidate_store=candidate_store,
         evaluator=evaluator,
         data_schema=CANDIDATE_DATA_SCHEMA,
@@ -141,7 +143,7 @@ async def main():
         num_proposals=1,
         #max_reflection_iterations=5,
         #min_improvement_per_batch=3.0,
-        initial_spec_dir=INITIAL_SPEC_DIR,
+        initial_artifacts_dir=INITIAL_ARTIFACTS_DIR,
     )
 
     await optimizer.optimize()

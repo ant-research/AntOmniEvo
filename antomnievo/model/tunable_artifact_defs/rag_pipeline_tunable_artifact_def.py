@@ -1,7 +1,7 @@
-"""Spec definition for a retrieval (RAG) pipeline.
+"""Tunable-artifact definition for a retrieval (RAG) pipeline.
 
 A hybrid retrieval pipeline: a deterministic DAG whose nodes may call models
-(embedding, cross-encoder rerank, LLM rewrite). An editable spec directory
+(embedding, cross-encoder rerank, LLM rewrite). A tunable-artifact directory
 configures it; a Proposer mutates the directory, the runner materializes and
 executes it.
 
@@ -15,8 +15,8 @@ Nodes communicate only via the return value (hits, threaded node->node) and
 ctx.resources (shared state).
 """
 
-from antomnievo.model.spec_defs.common_descriptions import _ADDITIONAL_FILES_DESCRIPTION
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_defs.common_descriptions import _ADDITIONAL_FILES_DESCRIPTION
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
 # ---------------------------------------------------------------------------
 # Trajectory monitoring convention (referenced by file descriptions)
@@ -88,14 +88,14 @@ or two shaping counts. Do not dump intermediate score frames; Layer 1's \
 
 
 # ---------------------------------------------------------------------------
-# spec/ directory
+# artifact/ directory
 # ---------------------------------------------------------------------------
 
-_SPEC_DIR = """\
-The spec directory defines a retrieval pipeline. It is materialized by \
+_ARTIFACT_DIR = """\
+The artifact directory defines a retrieval pipeline. It is materialized by \
 `load_pipeline` into a runnable DAG:
 
-    spec/
+    artifact/
     ├── pipeline.json     # the DAG: ordered nodes + params
     ├── nodes/            # node implementations, one .py per node TYPE
     └── prompt/           # prompt / resource files nodes read at run time
@@ -192,13 +192,13 @@ Runner-enforced semantics:
 - `dag` executes in LIST ORDER, threading `hits` node->node. The first enabled \
   node gets hits=[].
 - `type` resolves to nodes/<type>.py which MUST define \
-  `async def run(query, hits, params, ctx)` (the runner awaits it). Unknown type -> SpecError at load.
+  `async def run(query, hits, params, ctx)` (the runner awaits it). Unknown type -> ArtifactError at load.
 - `id` is the trajectory span name (`node:<id>`). Keep it STABLE across \
   mutations so the same node can be diffed before/after.
 - `enabled: false` SKIPS the node but still records a `skipped` span. Use it to \
   A/B-test without deleting code.
 - `params` is opaque to the runner — passed verbatim to run/init. The node \
-  header docstring is the ONLY spec of `params` meaning, INCLUDING model-call \
+  header docstring is the ONLY specification of `params` meaning, INCLUDING model-call \
   params (model, top_m, api_key, base_url, instruct, batch_size, prompt_file).
 
 Hard param bound (proposer MUST honor):
@@ -299,7 +299,7 @@ REMAINING budget — so if a node blows it, the trajectory names EXACTLY that no
 its span gets an `output.timeout` field with `timeout_reason`, `budget_used_ms`,
 and `budget_limit_ms`. Remaining nodes are skipped; the query returns its current
 (partial) hits instead of failing, so a slow node degrades the result rather than
-aborting the batch. A Proposer CANNOT raise this limit via the spec (it is a
+aborting the batch. A Proposer CANNOT raise this limit via the artifacts (it is a
 runner code constant). To stay under 10s: keep `top_m` bounded, recall `k` modest
 (<=30 per route), `hop` <= 2, and `max_tokens` <= 2048.
 
@@ -319,12 +319,12 @@ their prompt from there by stem; a node may choose which stem via its \
 
 A prompt file is a template. The conventional placeholder is `{query}`, which a \
 node substitutes with the incoming query. A node MUST support the placeholders \
-documented in its header; unsupported placeholders are a node bug, not a spec bug.
+documented in its header; unsupported placeholders are a node bug, not an artifact bug.
 
 Why a file and not a hardcoded string: editing a prompt file changes behavior \
 with no node code change, and a node records the `prompt_file` it used on the \
 trajectory, so which prompt shaped a run is observable. Editing behavior by \
-mutating prose rather than code is the point of an editable spec.
+mutating prose rather than code is the point of a tunable artifact.
 
 Contract:
 - One prompt per file; filename stem is the stable id nodes and trajectory refer to.
@@ -335,9 +335,9 @@ Contract:
 """
 
 
-RAG_PIPELINE_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_SPEC_DIR,
+RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_ARTIFACT_DIR,
     files=[
         FileSchema(name="pipeline.json", description=_PIPELINE_JSON),
         FolderSchema(name="nodes", description=_NODES, files=[]),
@@ -348,6 +348,6 @@ RAG_PIPELINE_SPEC_SCHEMA: SpecSchema = FolderSchema(
 
 
 if __name__ == "__main__":
-    from antomnievo.model.spec_schema import render_spec_schema
+    from antomnievo.model.tunable_artifact_schema import render_tunable_artifact_schema
 
-    print(render_spec_schema(RAG_PIPELINE_SPEC_SCHEMA))
+    print(render_tunable_artifact_schema(RAG_PIPELINE_TUNABLE_ARTIFACT_SCHEMA))

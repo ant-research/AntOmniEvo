@@ -16,7 +16,7 @@ npm install -g @mariozechner/pi-coding-agent   # 可选:`pi` CLI,仅当你用 Pi
 
 ## 写你自己的 optimizer 入口
 
-AntOmniEvo 是框架:你写一个入口脚本,把 7 个可插拔组件 + 一份 `SpecSchema` 串起来并调 `await optimizer.optimize()`。`antomnievo/example/` 下的脚本是参照实现(每个都针对一种系统形态把组件拼好),挑一个和你系统形态对得上的,把里面的 `System` / `Evaluator` / `DataInst` / `SpecSchema` / 初始 spec 换成你自己的。
+AntOmniEvo 是框架:你写一个入口脚本,把 7 个可插拔组件 + 一份 `TunableArtifactSchema` 串起来并调 `await optimizer.optimize()`。`antomnievo/example/` 下的脚本是参照实现(每个都针对一种系统形态把组件拼好),挑一个和你系统形态对得上的,把里面的 `System` / `Evaluator` / `DataInst` / `TunableArtifactSchema` / 初始可调产物换成你自己的。
 
 入口脚本形状:加载 train/val 数据 → 建带时间戳的 `workspace/` → 构造各组件 → `await optimizer.optimize()`。具体拼法看:
 
@@ -31,7 +31,7 @@ from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvoluti
 from antomnievo.model.budget import Budget
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
 # 下面四个换成你自己的:
-from antomnievo.model.spec_defs.myagent_spec_def import MY_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.myagent_tunable_artifact_def import MY_TUNABLE_ARTIFACT_SCHEMA
 from antomnievo.system.myagent.myagent_system import MySystem
 from antomnievo.evaluator.myagent.myagent_evaluator import MyEvaluator
 from antomnievo.dataset.myagent.myagent_dataset_loader import load_dataset
@@ -53,7 +53,7 @@ async def main():
     system    = MySystem(concurrency=8, api_key="…", base_url="…")
     evaluator = MyEvaluator()
     proposer  = PiCodingAgentProposer(
-        api_key="…", spec_schema=MY_SPEC_SCHEMA, candidate_store=store,
+        api_key="…", tunable_artifact_schema=MY_TUNABLE_ARTIFACT_SCHEMA, candidate_store=store,
         evaluator=evaluator, data_schema=CANDIDATE_DATA_SCHEMA,
         model="…", provider="anthropic", concurrency=20, max_turns=200, timeout=3600,
         system=system, skip_perfect_score_runs=False, last_n_analysis=10,
@@ -64,7 +64,7 @@ async def main():
         train_dataset=train, val_dataset=val,
         batch_size=3, budget=Budget(max_iterations=1000),
         num_proposals=1, max_reflection_iterations=2, min_improvement_per_batch=2.0,
-        initial_spec_dir="/path/to/tasks/myagent-base",
+        initial_artifacts_dir="/path/to/tasks/myagent-base",
     )
     await optimizer.optimize()
 

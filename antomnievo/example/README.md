@@ -16,7 +16,7 @@ Optimizes a ReAct agent that answers multi-hop questions by iteratively searchin
 | System | `ReactAgentSystem` | LLM agent with tool-calling (search, lookup) |
 | Evaluator | `AtomicFactEvaluator` | Decomposes answers into atomic facts and checks each |
 | Dataset | MuSiQue | Multi-hop QA requiring 2-4 reasoning steps |
-| Proposer | `ClaudeCodeProposer` | Evolves system prompt and skill spec |
+| Proposer | `ClaudeCodeProposer` | Evolves system prompt and skill tunable artifacts |
 | EA | `ParetoFrontierEvolutionAlgorithm` | Pareto dominance + top-N truncation |
 
 **Goal**: Maximize factual correctness on complex, multi-hop questions.
@@ -35,7 +35,7 @@ Optimizes a PI coding agent that converts natural language questions into SQL, e
 
 **Goal**: Evolve the NL2SQL skill and runtime extensions to maximize execution accuracy across diverse database schemas.
 
-**Spec structure**: `skill/` (SKILL.md, references, examples, scripts) + `extensions/` (TypeScript PI agent hooks that enforce hard constraints at runtime).
+**Artifact structure**: `skill/` (SKILL.md, references, examples, scripts) + `extensions/` (TypeScript PI agent hooks that enforce hard constraints at runtime).
 
 ## Text2SQL — Dataphin (`text2sql/dp_text2sql.py`)
 
@@ -46,7 +46,7 @@ Optimizes a Text2SQL agent for Dataphin's Harbor-based NL2SQL runtime.
 | System | `DPText2SQLSystem` | Wraps Harbor-based NL2SQL runtime |
 | Evaluator | `DPText2SQLEvaluator` | Harbor evaluation module (generated SQL vs ground-truth) |
 | Dataset | Harbor tasks (train/val split) | Dataphin production scenarios |
-| Proposer | `PiCodingAgentProposer` | Evolves agent spec |
+| Proposer | `PiCodingAgentProposer` | Evolves agent tunable artifacts |
 | EA | `ParetoFrontierEvolutionAlgorithm` | Pareto dominance + top-N truncation |
 
-**Goal**: Evolve the NL2SQL agent spec to maximize query correctness on Dataphin production workloads.
+**Goal**: Evolve the NL2SQL agent tunable artifacts to maximize query correctness on Dataphin production workloads.

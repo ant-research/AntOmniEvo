@@ -69,9 +69,9 @@ class AdConfigSystem(System):
     batch, then reads ``predictions.jsonl`` + ``trajectories.jsonl`` back and
     builds a :class:`SystemResult` per data instance.
 
-    The candidate's editable surface is loaded onto the runtime via
-    ``--spec-dir <candidate_meta.spec_dir> --editable <entry>...`` ("load spec"),
-    so each candidate runs as a mutated spec on the non-editable runtime base.
+    The candidate's tunable artifacts are loaded onto the runtime via
+    ``--artifact-dir <candidate_meta.artifact_dir> --tunable <entry>...`` ("load artifact"),
+    so each candidate runs as mutated tunable artifacts on the non-tunable runtime base.
     Ad-config is a write-type agent, so ``--local-sandbox-transport`` is on by
     default (maps a snapshot of the project source repo at the case's code
     revision into a writable sandbox VFS).
@@ -83,7 +83,7 @@ class AdConfigSystem(System):
         generate_script: str,
         python_path: str,
         agent_src: str,
-        editable: list[str],
+        tunable: list[str],
         local_source_repo: str,
         env_file: str | None = None,
         timeout: int = 1200,
@@ -99,8 +99,8 @@ class AdConfigSystem(System):
                 (``.venv/bin/python``) — generate.py + its deps run there.
             agent_src: the runtime agent package dir passed to generate.py
                 ``--agent-src`` (e.g. ``src/module_peizhiagent``).
-            editable: the agreed editable entries (antomnievo-guidelines step 3),
-                passed to generate.py as repeated ``--editable <pkg-rel>``.
+            tunable: the agreed tunable-artifact entries (antomnievo-guidelines step 3),
+                passed to generate.py as repeated ``--tunable <pkg-rel>``.
             local_source_repo: project source repo checkout for
                 ``--local-source-repo`` (the case's code revision is resolved in
                 it; a snapshot is exported into the local sandbox VFS).
@@ -124,7 +124,7 @@ class AdConfigSystem(System):
         self.generate_script = generate_script
         self.python_path = python_path
         self.agent_src = agent_src
-        self.editable = list(editable)
+        self.tunable = list(tunable)
         self.local_source_repo = local_source_repo
         self.env_file = env_file
         self.timeout = timeout
@@ -168,14 +168,14 @@ class AdConfigSystem(System):
         cmd = [
             self.python_path, self.generate_script,
             "--agent-src", self.agent_src,
-            "--spec-dir", candidate_meta.spec_dir,
+            "--artifact-dir", candidate_meta.artifact_dir,
             "--cases", cases_path,
             "--output-dir", output_dir,
             "--concurrency", str(self.generate_concurrency),
             "--timeout-seconds", str(self.timeout),
         ]
-        for ent in self.editable:
-            cmd.extend(["--editable", ent])
+        for ent in self.tunable:
+            cmd.extend(["--tunable", ent])
         if self.local_sandbox_transport:
             cmd.extend(["--local-sandbox-transport", "--local-source-repo", self.local_source_repo])
         if self.env_file:

@@ -1,11 +1,11 @@
 # generate/evaluate 配方(eddy 专用)
 
-在业务项目 `<proj>/scripts/` 下写 `generate.py` + `evaluate.py`。**本配方针对 eddy**:eddy SDK 相关的固定部分(`agent.invoke`、`AgentStates`、`RunContext`、`LOCAL_WORKSPACE`、包结构检测、dep-install、load-spec、轨迹)直接写死在 skill 里;业务变化部分(入口名、可编辑条目、运行上下文字段、converter、scorer、打分法)标为「问用户 / 从 gold 读」,不预设。
+在业务项目 `<proj>/scripts/` 下写 `generate.py` + `evaluate.py`。**本配方针对 eddy**:eddy SDK 相关的固定部分(`agent.invoke`、`AgentStates`、`RunContext`、`LOCAL_WORKSPACE`、包结构检测、dep-install、load 可调产物、轨迹)直接写死在 skill 里;业务变化部分(入口名、可调条目、运行上下文字段、converter、scorer、打分法)标为「问用户 / 从 gold 读」,不预设。
 
 ## 写之前:主动问用户
 
 **写 generate.py 和 evaluate.py 之前,先问用户,别自己先一顿调查**(开口第一句就问,拿到用户指认后再针对性读代码验证;不要自己先把仓库翻个底朝天再开口):
-1. 有没有可以参照的**系统运行脚本**(怎么跑 agent、怎么出 predictions/trajectories/workspace artifacts) —— 用户给路径或命令,你照它的输出格式/CLI 习惯写 generate。⚠ **参照 ≠ wholesale delegate**:**generate.py 必须自己写、自己实现 load-spec**(checkout + `--editable` 逐条替换 + 从 checkout import + 自己的 invoke 循环)—— 项目的现成推理脚本**不支持 `--spec-dir`/`--editable`**,直接委托它 = 候选 spec 载不进来,达不到 AntOmniEvo 的目标。对现成运行脚本的正确用法是**读它、复用它的机制**(prompt/运行上下文构造、sandbox-transport 挂载、converter/轨迹 builder 直接 import 调),不是 shell 出去。
+1. 有没有可以参照的**系统运行脚本**(怎么跑 agent、怎么出 predictions/trajectories/workspace artifacts) —— 用户给路径或命令,你照它的输出格式/CLI 习惯写 generate。⚠ **参照 ≠ wholesale delegate**:**generate.py 必须自己写、自己实现 load 可调产物**(checkout + `--tunable` 逐条替换 + 从 checkout import + 自己的 invoke 循环)—— 项目的现成推理脚本**不支持 `--artifact-dir`/`--tunable`**,直接委托它 = 候选可调产物载不进来,达不到 AntOmniEvo 的目标。对现成运行脚本的正确用法是**读它、复用它的机制**(prompt/运行上下文构造、sandbox-transport 挂载、converter/轨迹 builder 直接 import 调),不是 shell 出去。
 2. 有没有可以参照的**系统评测脚本**(怎么读 predictions + gold、怎么打分、怎么出 per-case reason) —— 用户给路径或线索(grep `eval`/`score`/`judge`/`offline`/`predictions` 等),你照它的 metric 字段/reason 来源/CLI 参数写 evaluate。**evaluate.py 可以 delegate**(委托的前提 = 项目评测脚本能复用已有推理产物、不重跑 agent;具体支不支持、flag 叫什么看项目 eval CLI,以实际为准),不要自创一套不一致的 scoring。
 
 **用户不知道时**:自己去仓库 grep 看,找到后列候选 → 跟用户确认 → 按上面分工写。**用户说"没有"时才从零写。**
@@ -47,10 +47,10 @@ agent 入口形如 `<pkg>.<module>:<attr>`(eddy 约定,如 `agents.starter_agent
 ### dep 自动安装(import 前)
 按 node_docs 范式:递归扫 `<pkg>` 下 `.py` 导入,丢 stdlib/本包/已装,`uv pip install --python <venv> <missing>`(best-effort)。`--no-install-deps` 可跳。这样新版本加新依赖也能直接跑。
 
-### load spec(--spec-dir --editable,eddy 固定逻辑)
-候选的可编辑改动按 `--editable`(可重复,pkg-rel 条目)逐条**替换**到 runtime checkout:
+### load 可调产物(--artifact-dir --tunable,eddy 固定逻辑)
+候选的可调改动按 `--tunable`(可重复,pkg-rel 条目)逐条**替换**到 runtime checkout:
 1. 拷一份运行期包到 tmp(跳 `__pycache__`/重数据;重数据 symlink 回源,不每 rollout 拷)。
-2. 每个 `--editable ent`:**dir → `rm <checkout>/<pkg>/<ent>` + `copytree(`<spec-dir>/<ent>`,…)`**;**file → `rm` + `copyfile`**;candidate 没有的条目 → 只 `rm`(删除传过去)。不 merge。
+2. 每个 `--tunable ent`:**dir → `rm <checkout>/<pkg>/<ent>` + `copytree(`<artifact-dir>/<ent>`,…)`**;**file → `rm` + `copyfile`**;candidate 没有的条目 → 只 `rm`(删除传过去)。不 merge。
 3. 从 checkout import agent + invoke。
 
 ---
@@ -138,8 +138,8 @@ Eddy 的 `RunContext(context)` 里要填的 `context` dict:
 | `--limit` | 可选 | — | 只跑前 N 条 case |
 | `--concurrency` | 可选 | — | 默认 1(case 内并发) |
 | `--timeout-seconds` | 可选 | — | 单 case 超时;默认 3600s(agent 跑一轮多 step + 工具 + LLM 调用容易超过默认值;完整跑一条 case 走 evidence→draft→edit→post-validation 等多 step 通常 10–20 分钟,3600s 是对 agent 跑一个真实 case 的安全超时 |
-| `--spec-dir` | 可选 | eddy 固定逻辑 | 候选的可编辑 spec 目录 |
-| `--editable` | 可选,配 `--spec-dir` | 业务适配(步骤 3 约定) | pkg-relative 可编辑条目,可重复 |
+| `--artifact-dir` | 可选 | eddy 固定逻辑 | 候选的可调产物目录 |
+| `--tunable` | 可选,配 `--artifact-dir` | 业务适配(步骤 3 约定) | pkg-relative 可调条目,可重复 |
 | `--env-file` | 可选 | — | dotenv 文件,可重复;在 import agent 前加载 |
 | `--dry-run` | 可选(仅开发自测) | — | 不调 agent,种合成 artifact;**冒烟不用 `--dry-run`** —— 必须真跑 agent 产真实数据 |
 | `--app-name`/`--env`/`--domain` | 可选 | 业务适配,仅 override | 从 case gold 读而非写死 |
@@ -163,7 +163,7 @@ Eddy 的 `RunContext(context)` 里要填的 `context` dict:
 
 ## 通用参数与能力:为什么这么设计(给用户解释用)
 
-generate.py / evaluate.py 有一套**通用参数 + 能力是每个 eddy 业务都该有的** —— 别的业务生成 gen/eval 时直接照搬这套,只改业务适配部分(入口名 / 可编辑条目 / 运行上下文字段 / converter / scorer)。下面每条都附**为什么**,方便你跟用户解释"为什么这么做"。
+generate.py / evaluate.py 有一套**通用参数 + 能力是每个 eddy 业务都该有的** —— 别的业务生成 gen/eval 时直接照搬这套,只改业务适配部分(入口名 / 可调条目 / 运行上下文字段 / converter / scorer)。下面每条都附**为什么**,方便你跟用户解释"为什么这么做"。
 
 ### generate.py 通用参数(直接复用)
 
@@ -176,7 +176,7 @@ generate.py / evaluate.py 有一套**通用参数 + 能力是每个 eddy 业务�
 | `--limit N` | 只跑 cases 的前 N 条;冒烟传 `--limit 1` 省钱省时,全量评测不传(默认全跑)。 |
 | `--concurrency C` | 单 process 内多 case 并发(默认 1);⚠ 共用一把 model key 时,网关限流会让"慢 case"伪装成"差 case",AntOmniEvo 多候选(多 process)并发时尤其要保证 key 公平、限流可观察。 |
 | `--timeout-seconds S` | agent 一条 case 走 evidence→draft→edit→validate 多 step + 多次工具/LLM,常 10–20 分钟;给单 case 一个 `asyncio.wait_for` 安全超时,防一条卡死拖垮整批。 |
-| `--spec-dir <候选 spec 目录>` + `--editable <pkg-rel>`(可重复) | **不给 `--spec-dir` = smoke 模式**,跑 runtime as-is;**给 `--spec-dir`(必配 `--editable`)= load 候选 spec**:把候选改过的可编辑面**替换**到不可编辑的 runtime checkout 上再跑(AntOmniEvo 候选 = 改过的可编辑面,只有 load 回 runtime 才跑得起来)。用 `rm + copytree` / `copyfile`(**不 merge**)才能让候选的删除/改名传过去;`--editable` = 步骤 3 跟用户约定的可编辑条目。 |
+| `--artifact-dir <候选 artifact 目录>` + `--tunable <pkg-rel>`(可重复) | **不给 `--artifact-dir` = smoke 模式**,跑 runtime as-is;**给 `--artifact-dir`(必配 `--tunable`)= load 候选可调产物**:把候选改过的可调面**替换**到不可调的 runtime checkout 上再跑(AntOmniEvo 候选 = 改过的可调面,只有 load 回 runtime 才跑得起来)。用 `rm + copytree` / `copyfile`(**不 merge**)才能让候选的删除/改名传过去;`--tunable` = 步骤 3 跟用户约定的可调条目。 |
 | `--env-file <f>`(可重复) | agent 在 **import 时**就 build 模型/构造 MCP,它读的 key 那时必须在 env 文件或 shell 里 → **必须在 import agent 前加载**;格式 `KEY=VALUE`/`export`/`#` 整行注释;shell 已 export 优先(让真凭证盖过文件占位)。 |
 | `--dry-run` | 不调 agent、种合成 artifact,让 converter+evaluate 零模型跑通(开发自测用);⚠ 冒烟必须真模型,不用它。 |
 | `--app-name`/`--env`/`--domain` | 运行上下文业务字段因领域而异 → 默认从 case gold 读、不写死;flag 仅作 override。 |
@@ -231,7 +231,7 @@ agent 的消息流**必须落盘**(regardless of `--dry-run`):AntOmniEvo 的 pro
 |---|---|
 | `predictions.jsonl` | `{case_id, status, prompt, final_text, artifact, artifact_source, run:{...}}` |
 | `trajectories.jsonl` | 每条 case 的消息流(上面 schema;**必需**,optimizer 读) |
-| `run_summary.json` | `{agent_src, package, agent_file, spec_loaded, spec_dir, editable, checkout, n_cases, n_failed, predictions, ...}` |
+| `run_summary.json` | `{agent_src, package, agent_file, artifact_loaded, artifact_dir, tunable, checkout, n_cases, n_failed, predictions, ...}` |
 | `workspace/<user>/<session>/artifacts.jsonl` | agent 工具落盘的原始产物(喂给 converter) |
 | `eval_summary` | `{score∈[0,1], ...}`(文件名/字段以你 evaluate.py `--help` 实际产出为准,别假设) |
 | per-case 产物 | 每条有 `score` + `reason` +  case-id(字段名以你 evaluate.py 实际产出为准) |
@@ -347,10 +347,10 @@ python scripts/evaluate.py \
 - 项目 eval 产出的全部中间产物保留(summary / per-case 结果 / 报告等,后续写 System/Evaluator 要照这些字段)
 - 给用户看这些文件 → 用户确认格式对不对 → 确认后继续
 
-### C. generate load-spec 真跑(验证候选 spec 载入)
+### C. generate load 可调产物真跑(验证候选可调产物载入)
 ```
 LOCAL_WORKSPACE=1 <model-key-env>=<key> python scripts/generate.py \
-  --agent-src <module> --spec-dir <cand> --editable <entry1> --editable <entry2> \
+  --agent-src <module> --artifact-dir <cand> --tunable <entry1> --tunable <entry2> \
   --cases <test> --output-dir <smoke dir>/load --limit 1
 ```
-验证:`spec_loaded=true` + `agent_file` 落在 tmp checkout 里 + `status=completed` + `trajectories.jsonl` 有内容。
+验证:`artifact_loaded=true` + `agent_file` 落在 tmp checkout 里 + `status=completed` + `trajectories.jsonl` 有内容。

@@ -1,13 +1,13 @@
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _PI_EXTENSIONS_DIR_DESCRIPTION,
     _REFERENCES_DIR_DESCRIPTION,
     _SCRIPTS_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema
+from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
 
-_TERMINALBENCH_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the agent's configurable behavior.
+_TERMINALBENCH_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the agent's configurable behavior.
 
 ## Global Constraints
 
@@ -23,7 +23,7 @@ removing or qualifying every other source.
 
 ### Generalization
 
-The spec optimizes a skill and extensions that will be applied to many tasks, so \
+The tunable artifacts optimize a skill and extensions that will be applied to many tasks, so \
 every artifact — Markdown rules, reference files, scripts, AND extensions — must work on \
 tasks it has never seen. An artifact that only fires on one specific task is dead \
 weight on every other task. When you observe a failure on one instance, extract the \
@@ -81,7 +81,7 @@ defaults from a tutorial."
 
 ## Choosing the right layer: extension, script, skill
 
-The spec has three layers with increasing determinism. **Prefer the most deterministic \
+The tunable artifacts have three layers with increasing determinism. **Prefer the most deterministic \
 layer that fits the problem** — code you can guarantee beats rules the LLM might ignore.
 
 - **Extensions** (extensions/*.ts) — the PREFERRED layer. Hook into the agent's full \
@@ -196,9 +196,9 @@ prevents the agent from producing invalid output. When analyzing failures, \
 prioritize modifying this file over adding more prompt text.
 """
 
-TERMINALBENCH_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_TERMINALBENCH_SPEC_DIR_DESCRIPTION,
+TERMINALBENCH_SKILL_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_TERMINALBENCH_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FolderSchema(
             name="skill",

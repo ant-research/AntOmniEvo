@@ -72,9 +72,9 @@ const TreeRow: React.FC<{
   const [open, setOpen] = React.useState(depth < defaultOpenDepth);
   const clickable = !node.isDir && !!onFileClick;
   return (
-    <div className="spec-tree-node">
+    <div className="artifact-tree-node">
       <div
-        className={`spec-tree-row ${node.isDir ? 'dir' : 'file'} ${clickable ? 'clickable' : ''}`}
+        className={`artifact-tree-row ${node.isDir ? 'dir' : 'file'} ${clickable ? 'clickable' : ''}`}
         style={{ paddingLeft: 8 + depth * 14 }}
         onClick={() => {
           if (node.isDir) setOpen(v => !v);
@@ -83,12 +83,12 @@ const TreeRow: React.FC<{
         title={node.fullPath}
       >
         {node.isDir ? (
-          <span className="spec-tree-twisty">{open ? '▾' : '▸'}</span>
+          <span className="artifact-tree-twisty">{open ? '▾' : '▸'}</span>
         ) : (
-          <span className="spec-tree-twisty leaf">·</span>
+          <span className="artifact-tree-twisty leaf">·</span>
         )}
-        <span className="spec-tree-icon">{node.isDir ? '📁' : '📄'}</span>
-        <span className="spec-tree-name mono">{node.name}</span>
+        <span className="artifact-tree-icon">{node.isDir ? '📁' : '📄'}</span>
+        <span className="artifact-tree-name mono">{node.name}</span>
       </div>
       {node.isDir && open && node.children.length > 0 && (
         <div>
@@ -110,10 +110,10 @@ const TreeRow: React.FC<{
 export const FileTree: React.FC<FileTreeProps> = ({ files, root, defaultOpenDepth = 1, onFileClick }) => {
   const tree = useMemo(() => buildTree(files, root), [files, root]);
   if (tree.length === 0) {
-    return <div className="spec-tree-empty">(no files)</div>;
+    return <div className="artifact-tree-empty">(no files)</div>;
   }
   return (
-    <div className="spec-tree">
+    <div className="artifact-tree">
       {tree.map(node => (
         <TreeRow
           key={node.fullPath}

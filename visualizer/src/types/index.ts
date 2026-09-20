@@ -1,7 +1,7 @@
 // Candidate metadata
 export interface CandidateMeta {
   candidate_id: string;
-  spec_dir: string;
+  artifact_dir: string;
   data_dir: string;
   parent_id: string | null;
   children_ids: string[];

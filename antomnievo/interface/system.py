@@ -34,7 +34,7 @@ class System(ABC):
         This description is injected into the analysis prompt so the analyzer
         understands what the system does, how it processes inputs, and what
         kind of outputs it produces. Helps the analyzer correctly attribute
-        issues to the spec vs. the system itself.
+        issues to the tunable artifacts vs. the system itself.
 
         Returns empty string by default; subclasses may override.
         """

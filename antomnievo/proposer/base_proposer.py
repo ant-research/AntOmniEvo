@@ -17,8 +17,8 @@ from antomnievo.interface.system import System
 from antomnievo.model.antomnievo_data import MaraChain, ProposalResult
 from antomnievo.model.candidate_data import CandidateMeta, RunAnalysis, RunRecord
 from antomnievo.model.candidate_data_schema import CANDIDATE_DATA_SCHEMA
-from antomnievo.model.spec_schema import SpecSchema, render_spec_schema
 from antomnievo.model.trajectory import Trajectory, merge_trajectories
+from antomnievo.model.tunable_artifact_schema import TunableArtifactSchema, render_tunable_artifact_schema
 from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.template import (
     ANALYSIS_PROMPT_TEMPLATE,
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseProposer(Proposer):
-    """Generic two-phase proposer: analyze runs, then mutate spec.
+    """Generic two-phase proposer: analyze runs, then mutate the tunable artifacts.
 
     Subclasses must implement invoke_agent() to provide the coding agent
     invocation (e.g. Claude Code, Pi Coding Agent, etc.).
@@ -50,11 +50,11 @@ class BaseProposer(Proposer):
 
     def __init__(
         self,
-        spec_schema: SpecSchema,
+        tunable_artifact_schema: TunableArtifactSchema,
         candidate_store: CandidateStore,
         evaluator: Evaluator,
         system: System | None = None,
-        data_schema: SpecSchema = CANDIDATE_DATA_SCHEMA,
+        data_schema: TunableArtifactSchema = CANDIDATE_DATA_SCHEMA,
         concurrency: int = 2,
         skip_perfect_score_runs: bool = False,
         last_n_analysis: int | None = None,
@@ -62,7 +62,7 @@ class BaseProposer(Proposer):
         """Initialize the proposer.
 
         Args:
-            spec_schema: Schema defining the spec directory structure and constraints.
+            tunable_artifact_schema: Schema defining the tunable-artifact directory structure and constraints.
             candidate_store: Store for reading/writing candidate data.
             evaluator: Evaluator for scoring criteria.
             system: Optional system instance for system description.
@@ -84,7 +84,7 @@ class BaseProposer(Proposer):
         self.concurrency = concurrency
         self._sem = asyncio.Semaphore(concurrency)
         self.candidate_store = candidate_store
-        self.spec_schema = spec_schema
+        self.tunable_artifact_schema = tunable_artifact_schema
         self.evaluator = evaluator
         self.system = system
         self.data_schema = data_schema
@@ -107,7 +107,7 @@ class BaseProposer(Proposer):
         parent_candidate_id: str,
         new_candidate_id: str,
     ) -> ProposalResult:
-        """Phase 1 + 2: Analyze unanalyzed runs and propose spec modifications."""
+        """Phase 1 + 2: Analyze unanalyzed runs and propose tunable-artifact modifications."""
         start_time = datetime.now()
         parent_meta = self.candidate_store.get_meta(parent_candidate_id)
         new_meta = self.candidate_store.get_meta(new_candidate_id)
@@ -364,7 +364,7 @@ class BaseProposer(Proposer):
         parent_candidate_id: str,
         new_candidate_id: str,
     ) -> ProposalResult:
-        """Phase 2: Read analysis and propose spec modifications."""
+        """Phase 2: Read analysis and propose tunable-artifact modifications."""
         parent_meta = self.candidate_store.get_meta(parent_candidate_id)
         new_meta = self.candidate_store.get_meta(new_candidate_id)
         propose_prompt = self._build_propose_prompt(parent_meta, new_meta)
@@ -382,15 +382,15 @@ class BaseProposer(Proposer):
         prompt: str,
         phase_label: str,
     ) -> ProposalResult:
-        """Shared core of Phase 2: invoke agent in the new spec dir, persist trajectory, check mtime."""
+        """Shared core of Phase 2: invoke agent in the new tunable-artifact dir, persist trajectory, check mtime."""
         start_time = datetime.now()
         new_meta = self.candidate_store.get_meta(new_candidate_id)
 
         try:
-            mtime_before = get_latest_mtime(new_meta.spec_dir)
-            logger.info(f"Phase 2 ({phase_label}): invoking propose agent in {new_meta.spec_dir}")
-            trajectory, stats = await self.invoke_agent(prompt, new_meta.spec_dir)
-            mtime_after = get_latest_mtime(new_meta.spec_dir)
+            mtime_before = get_latest_mtime(new_meta.artifact_dir)
+            logger.info(f"Phase 2 ({phase_label}): invoking propose agent in {new_meta.artifact_dir}")
+            trajectory, stats = await self.invoke_agent(prompt, new_meta.artifact_dir)
+            mtime_after = get_latest_mtime(new_meta.artifact_dir)
 
             check_trajectory_issues(trajectory, phase=phase_label)
             # Persist the trajectory FIRST, even on fatal LLM errors, so the
@@ -404,7 +404,7 @@ class BaseProposer(Proposer):
             if trajectory.errors:
                 # The LLM call itself failed (e.g. antchat 401 服务未授权, 5xx,
                 # rate limit). Surface the real cause instead of the misleading
-                # "No spec files were modified" — the agent never got to run.
+                # "No tunable-artifact files were modified" — the agent never got to run.
                 err = trajectory.errors[0]
                 logger.error(f"Phase 2 ({phase_label}): LLM call failed: {err[:200]}")
                 return ProposalResult(
@@ -414,7 +414,7 @@ class BaseProposer(Proposer):
                 )
 
             if mtime_after <= mtime_before + _MTIME_EPS:
-                return ProposalResult(success=False, error_message="No spec files were modified", stats=stats)
+                return ProposalResult(success=False, error_message="No tunable-artifact files were modified", stats=stats)
 
             return ProposalResult(success=True, stats=stats)
         except Exception as e:
@@ -437,13 +437,13 @@ class BaseProposer(Proposer):
         return ANALYSIS_PROMPT_TEMPLATE.format(
             data_id=data_id,
             run_file_paths=paths_text,
-            spec_dir=self.candidate_store.spec_dir(candidate_id),
+            artifact_dir=self.candidate_store.artifact_dir(candidate_id),
             analysis_result_path=self.candidate_store.analysis_result_path(candidate_id, data_id),
             validate_script=_SCRIPT_VALIDATE_ANALYSIS,
             current_timestamp=datetime.now().isoformat(timespec="seconds"),
             scoring_criteria=self.evaluator.scoring_criteria(),
             system_description=self.system.system_description() if self.system else "",
-            spec_schema=render_spec_schema(self.spec_schema),
+            tunable_artifact_schema=render_tunable_artifact_schema(self.tunable_artifact_schema),
             run_analysis_schema=RunAnalysis.to_description(),
             run_record_schema=RunRecord.to_description(),
             changelog_path=self.candidate_store.changelog_path(candidate_id),
@@ -460,13 +460,13 @@ class BaseProposer(Proposer):
         )
 
         return PROPOSER_PROMPT_TEMPLATE.format(
-            spec_schema=render_spec_schema(self.spec_schema),
-            data_schema=render_spec_schema(self.data_schema),
+            tunable_artifact_schema=render_tunable_artifact_schema(self.tunable_artifact_schema),
+            data_schema=render_tunable_artifact_schema(self.data_schema),
             analysis_content=analysis_content,
             parent_data_dir=parent_meta.data_dir,
-            new_spec_dir=new_meta.spec_dir,
+            new_artifact_dir=new_meta.artifact_dir,
             new_data_dir=new_meta.data_dir,
-            parent_spec_dir=parent_meta.spec_dir,
+            parent_artifact_dir=parent_meta.artifact_dir,
             append_changelog_script=_SCRIPT_APPEND_CHANGELOG,
         )
 
@@ -577,7 +577,7 @@ class BaseProposer(Proposer):
             data_id=data_id,
             run_file_paths=paths_text,
             chain_candidate_run_file_paths=chain_candidate_paths_text,
-            spec_dir=self.candidate_store.spec_dir(last_candidate_id),
+            artifact_dir=self.candidate_store.artifact_dir(last_candidate_id),
             analysis_result_path=self.candidate_store.analysis_result_path(
                 last_candidate_id, data_id
             ),
@@ -585,7 +585,7 @@ class BaseProposer(Proposer):
             current_timestamp=datetime.now().isoformat(timespec="seconds"),
             scoring_criteria=self.evaluator.scoring_criteria(),
             system_description=self.system.system_description() if self.system else "",
-            spec_schema=render_spec_schema(self.spec_schema),
+            tunable_artifact_schema=render_tunable_artifact_schema(self.tunable_artifact_schema),
             run_analysis_schema=RunAnalysis.to_description(),
             run_record_schema=RunRecord.to_description(),
             changelog_path=self.candidate_store.changelog_path(last_candidate_id),

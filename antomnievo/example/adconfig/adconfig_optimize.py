@@ -28,7 +28,7 @@ from antomnievo.dataset.adconfig import load_adconfig_dataset
 from antomnievo.evaluator.adconfig import AdConfigEvaluator
 from antomnievo.evolution_algorithm.pareto_frontier import ParetoFrontierEvolutionAlgorithm
 from antomnievo.model.budget import Budget
-from antomnievo.model.spec_defs.adconfig_spec_def import ADCONFIG_AGENT_SPEC_SCHEMA
+from antomnievo.model.tunable_artifact_defs.adconfig_tunable_artifact_def import ADCONFIG_AGENT_TUNABLE_ARTIFACT_SCHEMA
 from antomnievo.optimizer.adconfig import AdConfigOptimizer
 from antomnievo.proposer.pi_coding_agent_proposer import PiCodingAgentProposer
 from antomnievo.store.candidate_store import LocalCandidateStore
@@ -132,7 +132,7 @@ async def _run(cfg: dict) -> None:
 
     system = AdConfigSystem(
         generate_script=generate_script, python_path=python,
-        agent_src=agent_src, editable=list(cfg.get("editable", ["agents"])),
+        agent_src=agent_src, tunable=list(cfg.get("tunable", ["agents"])),
         local_source_repo=adrtb, env_file=run_env_file,
         timeout=int(system_cfg.get("timeout", 1200)),
         concurrency=int(system_cfg.get("concurrency", 1)),
@@ -150,7 +150,7 @@ async def _run(cfg: dict) -> None:
     candidate_store = LocalCandidateStore(workspace_dir, cleanup_unavailable=False)
     prop = cfg.get("proposer") or {}
     proposer = PiCodingAgentProposer(
-        spec_schema=ADCONFIG_AGENT_SPEC_SCHEMA, candidate_store=candidate_store,
+        tunable_artifact_schema=ADCONFIG_AGENT_TUNABLE_ARTIFACT_SCHEMA, candidate_store=candidate_store,
         evaluator=evaluator, system=system,
         api_key=prop.get("api_key") or None,
         base_url=prop.get("base_url"),
@@ -173,7 +173,7 @@ async def _run(cfg: dict) -> None:
         num_proposals=num_proposals,
         max_reflection_iterations=max_refl,
         min_improvement_per_batch=min_imp,
-        initial_spec_dir=cfg.get("initial_spec_dir") or _raise_required("initial_spec_dir"),
+        initial_artifacts_dir=cfg.get("initial_artifacts_dir") or _raise_required("initial_artifacts_dir"),
     )
     logger.info("calling optimizer.optimize() (workspace=%s, run.env=%s)...", workspace_dir, run_env_file)
     await optimizer.optimize()

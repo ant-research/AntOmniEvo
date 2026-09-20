@@ -1,14 +1,19 @@
-from antomnievo.model.spec_defs.common_descriptions import (
+from antomnievo.model.tunable_artifact_defs.common_descriptions import (
     _ADDITIONAL_FILES_DESCRIPTION,
     _ASSETS_DIR_DESCRIPTION,
     _REFERENCES_DIR_DESCRIPTION,
     _SCRIPTS_DIR_DESCRIPTION,
 )
-from antomnievo.model.spec_schema import FileSchema, FolderSchema, SpecSchema, render_spec_schema
+from antomnievo.model.tunable_artifact_schema import (
+    FileSchema,
+    FolderSchema,
+    TunableArtifactSchema,
+    render_tunable_artifact_schema,
+)
 
 """
-Follows the Agent Skills specification (agentskills.io):
-    {candidate_id}/spec/
+Follows the Agent Skills artifacts (agentskills.io):
+    {candidate_id}/artifact/
     ├── SKILL.md       # Required: frontmatter + instructions
     ├── scripts/       # Optional: executable code
     ├── references/    # Optional: documentation
@@ -22,12 +27,12 @@ Progressive disclosure:
 Keep SKILL.md under 500 lines. Move detailed content to references/.
 """
 
-_SPEC_DIR_DESCRIPTION = """\
-The spec directory defines the system's configurable behavior. Files are loaded progressively: \
+_ARTIFACT_DIR_DESCRIPTION = """\
+The artifact directory defines the system's configurable behavior. Files are loaded progressively: \
 SKILL.md frontmatter at startup for routing; SKILL.md body when the skill is activated; \
 other files on-demand — the agent must actively discover and read them.
 
-Global constraints across all spec files:
+Global constraints across all artifact files:
 - No redundancy: each piece of information must live in exactly one place. If two files state \
 the same rule, one must be removed or replaced with a cross-reference. Cross-references are \
 allowed (e.g., "See references/X for details"), but never duplicate the content itself.
@@ -127,9 +132,9 @@ references/
 └── azure.md
 ```"""
 
-AGENT_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
-    name="spec",
-    description=_SPEC_DIR_DESCRIPTION,
+AGENT_SKILL_TUNABLE_ARTIFACT_SCHEMA: TunableArtifactSchema = FolderSchema(
+    name="artifact",
+    description=_ARTIFACT_DIR_DESCRIPTION,
     files=[
         FileSchema(name="SKILL.md", description=_SKILL_MD_DESCRIPTION),
         FolderSchema(name="scripts", description=_SCRIPTS_DIR_DESCRIPTION),
@@ -141,7 +146,7 @@ AGENT_SKILL_SPEC_SCHEMA: SpecSchema = FolderSchema(
 
 
 if __name__ == "__main__":
-    print(render_spec_schema(AGENT_SKILL_SPEC_SCHEMA))
+    print(render_tunable_artifact_schema(AGENT_SKILL_TUNABLE_ARTIFACT_SCHEMA))
 
     print("\n" + "=" * 60 + "\n")
 
@@ -175,4 +180,4 @@ if __name__ == "__main__":
             ),
         ],
     )
-    print(render_spec_schema(nested))
+    print(render_tunable_artifact_schema(nested))
