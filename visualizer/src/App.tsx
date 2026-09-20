@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './pages/Dashboard';
 import { browseDirectory, type BrowseResult } from './utils/api';
 
-// Default workspace path
-const DEFAULT_WORKSPACE = '/Users/jacklv/work/omnievo/antomnievo/example/text2sql/workspace';
-
 function DirectoryBrowser({
   onSelect,
   onCancel,
@@ -32,15 +29,29 @@ function DirectoryBrowser({
   }, []);
 
   useEffect(() => {
-    // Start from the parent of the current workspace
-    const startPath = initialPath ? initialPath.replace(/\/[^/]*$/, '') : undefined;
-    load(startPath || undefined);
-  }, [initialPath, load]);
+    // Start from the parent of the current workspace; if that path is gone
+    // (stale/foreign path), fall back to the home directory instead of
+    // leaving the dialog empty.
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const startPath = initialPath ? initialPath.replace(/\/[^/]*$/, '') : undefined;
+      try {
+        setBrowse(await browseDirectory(startPath || undefined));
+      } catch {
+        try {
+          setBrowse(await browseDirectory(undefined));
+        } catch (e: any) {
+          setError(e.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [initialPath]);
 
-  if (!browse && loading) return <div className="dir-browser-loading">Loading…</div>;
-  if (error) return <div className="dir-browser-error">{error}</div>;
-  if (!browse) return null;
-
+  // Always render inside the overlay — loading and error states included —
+  // so clicking Browse never appears to do nothing.
   return (
     <div className="dir-browser-overlay" onClick={onCancel}>
       <div className="dir-browser" onClick={(e) => e.stopPropagation()}>
@@ -48,38 +59,45 @@ function DirectoryBrowser({
           <span className="dir-browser-title">Select Workspace Directory</span>
           <button className="dir-browser-close" onClick={onCancel}>✕</button>
         </div>
-        <div className="dir-browser-current mono">
-          {browse.path}
-          <button
-            className="dir-browser-select-btn"
-            onClick={() => onSelect(browse.path)}
-          >
-            Select This
-          </button>
-        </div>
-        <div className="dir-browser-list">
-          {browse.parent && (
-            <div
-              className="dir-browser-item dir-browser-parent"
-              onClick={() => load(browse.parent!)}
-            >
-              📁 ..
+        {error && <div className="dir-browser-error">{error}</div>}
+        {!browse ? (
+          <div className="dir-browser-loading">Loading…</div>
+        ) : (
+          <>
+            <div className="dir-browser-current mono">
+              {browse.path}
+              <button
+                className="dir-browser-select-btn"
+                onClick={() => onSelect(browse.path)}
+              >
+                Select This
+              </button>
             </div>
-          )}
-          {loading && <div className="dir-browser-loading">Loading…</div>}
-          {!loading && browse.dirs.map((name) => (
-            <div
-              key={name}
-              className="dir-browser-item"
-              onClick={() => load(`${browse.path}/${name}`)}
-            >
-              📁 {name}
+            <div className="dir-browser-list">
+              {browse.parent && (
+                <div
+                  className="dir-browser-item dir-browser-parent"
+                  onClick={() => load(browse.parent!)}
+                >
+                  📁 ..
+                </div>
+              )}
+              {loading && <div className="dir-browser-loading">Loading…</div>}
+              {!loading && browse.dirs.map((name) => (
+                <div
+                  key={name}
+                  className="dir-browser-item"
+                  onClick={() => load(`${browse.path}/${name}`)}
+                >
+                  📁 {name}
+                </div>
+              ))}
+              {!loading && browse.dirs.length === 0 && (
+                <div className="dir-browser-empty">No subdirectories</div>
+              )}
             </div>
-          ))}
-          {!loading && browse.dirs.length === 0 && (
-            <div className="dir-browser-empty">No subdirectories</div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -91,7 +109,8 @@ function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
 
-  // Read workspace from URL params
+  // Read workspace from URL params. No default path: a hardcoded one would be
+  // wrong for anyone else (and stale for us) — ask the user instead.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ws = params.get('workspace');
@@ -99,9 +118,7 @@ function App() {
       setWorkspacePath(ws);
       setInputValue(ws);
     } else {
-      // Use default workspace
-      setWorkspacePath(DEFAULT_WORKSPACE);
-      setInputValue(DEFAULT_WORKSPACE);
+      setIsEditing(true);
     }
   }, []);
 
@@ -121,11 +138,6 @@ function App() {
       applyWorkspace(inputValue.trim());
     }
   };
-
-  // Show loading state
-  if (!workspacePath) {
-    return <div className="loading">Loading...</div>;
-  }
 
   return (
     <div className="app">
@@ -156,6 +168,7 @@ function App() {
             <button
               type="button"
               onClick={() => {
+                if (!workspacePath) return; // nothing to fall back to — keep editing
                 setIsEditing(false);
                 setInputValue(workspacePath);
               }}
@@ -173,7 +186,14 @@ function App() {
           onCancel={() => setShowBrowser(false)}
         />
       )}
-      <Dashboard workspacePath={workspacePath} />
+      {workspacePath ? (
+        <Dashboard workspacePath={workspacePath} />
+      ) : (
+        <div className="loading">
+          Pick the workspace directory of an optimization run (its workspace_dir)
+          to inspect it — enter the path above or use Browse.
+        </div>
+      )}
     </div>
   );
 }
