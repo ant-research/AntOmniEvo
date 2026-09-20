@@ -1,17 +1,36 @@
 # AntOmniEvo
 
+**An auto-evolution framework: optimize anything — your 7×24 algorithm engineers.**
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![arXiv](https://img.shields.io/badge/Paper-coming_soon-lightgrey.svg)](#paper)
+
 > [English](./README.md) · **中文**
 
-**AntOmniEvo 是一个自动优化框架,分工明确:你定义系统的 tunable artifacts 和「什么是好」—— framework 控制循环,AI 干活 —— 最终把优化后的可调产物交付给你。**
+---
+
+**AntOmniEvo 是一个 auto-evolution(自动进化)框架,分工明确:你定义系统的 tunable artifacts 和「什么是好」—— framework 控制循环,AI 干活 —— 最终把优化后的可调产物交付给你。**
 
 你系统中的可调部分被抽象为一份**可调产物(tunable artifacts)** —— 一个真实文件目录:agent 的 `SKILL.md` + 参考资料 + 脚本、workflow 的 `pipeline.json` + 节点脚本、单文件算法 + 它的描述。凡是能这么表示、又能被重复评估的系统,AntOmniEvo 都能优化 —— 优化变成了普通的文件编辑。被优化的系统不需要包含 LLM;但做优化的必须是一个 coding agent。
 
-## 分工:你定义,framework 控制,AI 干活
+## 🚀 是什么
+
+AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架。它把系统的**可调产物**(skill、prompt、workflow 配置、pipeline 代码)当作基因组,跑一个并发进化循环:由 coding-agent `Proposer` 读失败轨迹、改写这些可调产物 —— 像人改代码一样。
+
+只要系统能表达成一目录可调文件、且评估可重复且成本可控,就能用:
+
+- **AI Agent** —— skill / harness / memory / extension 目录(NL2SQL skill、coding agent 的 skill+harness、agentic-API skill、system prompt + 策略文档)。
+- **Workflow / 流水线** —— 配置 + 节点代码(retrieval DAG 的 `pipeline.json` + `nodes/*.py`)。
+- **单文件算法** —— 一个 `.py` / `.ts` + 它的描述。
+
+## 🧩 怎么运作
+
+**分工:你定义,framework 控制,AI 干活。**
 
 **你定义** —— 五样东西,一次给出:
 
 | 你提供 | 作用 |
-|---|---|
+| --- | --- |
 | `System` | 如何**运行**你的系统(单条评估样本) |
 | `Evaluator` | 如何给输出**打分**(0–1)—— 它的打分标准**就是**优化目标 |
 | 评估**数据** | 定义「好」的训练 / 验证样本 |
@@ -24,12 +43,14 @@
 
 **它交付** —— 最优候选的**可调产物**:一个真实文件目录,可以 diff、review、直接部署;附带变更 lineage,每一处改动都能归因到促成它的失败证据。
 
----
+## ✨ 快速开始
 
-## 文档
+见 [安装与快速开始](./docs/quickstart.zh-CN.md):安装、最小入口脚本、跑通第一次 `optimize()`。
+
+## 📚 文档
 
 | 主题 | 中文 | English |
-|---|---|---|
+| --- | --- | --- |
 | 安装与快速开始 | [docs/quickstart.zh-CN.md](./docs/quickstart.zh-CN.md) | [docs/quickstart.md](./docs/quickstart.md) |
 | 系统特点 | [docs/features.zh-CN.md](./docs/features.zh-CN.md) | [docs/features.md](./docs/features.md) |
 | 可扩展性 | [docs/extensibility.zh-CN.md](./docs/extensibility.zh-CN.md) | [docs/extensibility.md](./docs/extensibility.md) |
@@ -38,6 +59,14 @@
 | workspace 产物与归因 | [docs/workspace-artifacts.zh-CN.md](./docs/workspace-artifacts.zh-CN.md) | [docs/workspace-artifacts.md](./docs/workspace-artifacts.md) |
 | 断点续跑与崩溃恢复 | [docs/checkpoint-resume.zh-CN.md](./docs/checkpoint-resume.zh-CN.md) | [docs/checkpoint-resume.md](./docs/checkpoint-resume.md) |
 | 可视化器 | [docs/visualizer.zh-CN.md](./docs/visualizer.zh-CN.md) | [docs/visualizer.md](./docs/visualizer.md) |
+
+## 📄 Paper
+
+**Coming soon.** 发布后我们会把论文链接放在这里。
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ant-research/AntOmniEvo&type=Date)](https://star-history.com/#ant-research/AntOmniEvo&Date)
 
 ## 许可
 
