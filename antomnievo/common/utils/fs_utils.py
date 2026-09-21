@@ -14,3 +14,16 @@ def get_latest_mtime(dir_path: str) -> float:
             except OSError:
                 continue
     return latest
+
+
+def file_written_since(path: str, since_ts: float, eps: float = 1e-3) -> bool:
+    """True if `path` exists and was modified at or after `since_ts` (epoch seconds).
+
+    Used to verify an agent actually (re)wrote its output file during its run —
+    a pre-existing stale file does not count. `eps` tolerates coarse filesystem
+    timestamp granularity.
+    """
+    try:
+        return os.path.getmtime(path) >= since_ts - eps
+    except OSError:
+        return False

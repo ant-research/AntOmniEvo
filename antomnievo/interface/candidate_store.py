@@ -16,6 +16,12 @@ from antomnievo.model.evaluation_result import EvaluationResult
 from antomnievo.model.statistics import OptimizationStatistics
 from antomnievo.model.trajectory import Trajectory
 
+# Sentinel returned by ``read_all_analysis_json_content`` when no usable
+# analysis results exist (nothing on disk, or every entry has empty actions).
+# Callers can compare against this to fail fast instead of proposing on an
+# empty evidence base.
+NO_ANALYSIS_RESULTS = "(no analysis results available)"
+
 
 class CandidateStore(ABC):
     """Abstract storage contract for optimization candidate persistence.

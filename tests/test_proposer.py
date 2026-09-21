@@ -18,6 +18,7 @@ from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.interface.evaluator import Evaluator
 from antomnievo.model.trajectory import Span, Trajectory
 from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema, TunableArtifactSchema
+from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.claude_code_proposer import ClaudeCodeProposer
 from antomnievo.proposer.utils.claude_code_utils import (
     ClaudeCodeConfig,
@@ -570,3 +571,84 @@ class TestCheckTrajectoryIssues:
         with caplog.at_level(logging.WARNING, logger=self.ISSUE_LOGGER):
             check_trajectory_issues(traj)
         assert len(self._warnings(caplog)) > 0
+
+
+class TestAnalysisResultVerification:
+    """Phase 1 must not count a clean-exit session as success when the agent
+    never (re)wrote its analysis result file — e.g. the model died on empty
+    gateway responses mid-run. Otherwise Phase 2 builds on empty analysis and
+    reliably ends with "no files modified"."""
+
+    def _run_analyze(self, proposer, store, parent_meta, fake_invoke):
+        proposer.invoke_agent = fake_invoke
+        return asyncio.run(proposer._analyze_single_data_id(
+            parent_meta=parent_meta,
+            data_id="q1",
+            run_names=["r1"],
+            prompt_builder=lambda data_id, paths, candidate_id: "prompt",
+            phase_label="Analysis",
+        ))
+
+    def test_missing_result_file_fails(self, proposer, store):
+        root = store.create_root()
+        parent_meta = store.get_meta(root.candidate_id)
+
+        async def fake_invoke(prompt, cwd):
+            return Trajectory(
+                root_span_list=[Span(name="model", span_type="model", output="ok")]
+            ), UsageStats()
+
+        with pytest.raises(RuntimeError, match="analysis result file was not written"):
+            self._run_analyze(proposer, store, parent_meta, fake_invoke)
+
+    def test_written_result_file_passes(self, proposer, store):
+        root = store.create_root()
+        parent_meta = store.get_meta(root.candidate_id)
+        result_path = store.analysis_result_path(root.candidate_id, "q1")
+
+        async def fake_invoke(prompt, cwd):
+            os.makedirs(os.path.dirname(result_path), exist_ok=True)
+            with open(result_path, "w") as f:
+                f.write("{}")
+            return Trajectory(
+                root_span_list=[Span(name="model", span_type="model", output="ok")]
+            ), UsageStats()
+
+        traj, _ = self._run_analyze(proposer, store, parent_meta, fake_invoke)
+        assert traj.errors == []
+
+    def test_stale_result_file_fails(self, proposer, store):
+        """A result file left over from a previous analysis (older mtime) must
+        not count as written by this run."""
+        root = store.create_root()
+        parent_meta = store.get_meta(root.candidate_id)
+        result_path = store.analysis_result_path(root.candidate_id, "q1")
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
+        with open(result_path, "w") as f:
+            f.write("{}")
+        old = time.time() - 3600
+        os.utime(result_path, (old, old))
+
+        async def fake_invoke(prompt, cwd):
+            return Trajectory(
+                root_span_list=[Span(name="model", span_type="model", output="ok")]
+            ), UsageStats()
+
+        with pytest.raises(RuntimeError, match="analysis result file was not written"):
+            self._run_analyze(proposer, store, parent_meta, fake_invoke)
+
+
+class TestProposeGate:
+    def test_mutate_fails_fast_without_analysis(self, proposer, store):
+        """Phase 2 with zero usable analyses must fail fast instead of burning
+        an agent run on a prompt whose Pre-loaded Data section is empty."""
+        root = store.create_root()
+        child = store.create_child(root.candidate_id)
+
+        async def fake_invoke(prompt, cwd):  # must never be reached
+            raise AssertionError("invoke_agent should not be called")
+
+        proposer.invoke_agent = fake_invoke
+        result = asyncio.run(proposer._mutate(root.candidate_id, child.candidate_id))
+        assert not result.success
+        assert "No analysis results" in result.error_message

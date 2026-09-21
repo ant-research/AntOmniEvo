@@ -5,7 +5,7 @@ import shutil
 import uuid
 from datetime import datetime
 
-from antomnievo.interface.candidate_store import CandidateStore
+from antomnievo.interface.candidate_store import NO_ANALYSIS_RESULTS, CandidateStore
 from antomnievo.model.antomnievo_data import IterationRecord
 from antomnievo.model.candidate_data import (
     CandidateMeta,
@@ -415,7 +415,7 @@ class LocalCandidateStore(CandidateStore):
     ) -> str:
         analysis_dict = self._read_analysis_dict_from_disk(candidate_id)
         if not analysis_dict:
-            return "(no analysis results available)"
+            return NO_ANALYSIS_RESULTS
 
         # Filter out entries with no actions (they provide no actionable info to the proposer),
         # then sort by updated_at desc (newer first).
@@ -440,7 +440,7 @@ class LocalCandidateStore(CandidateStore):
             current_size += len(serialized)
 
         if not included:
-            return "(no analysis results available)"
+            return NO_ANALYSIS_RESULTS
 
         return json.dumps(included, indent=2, ensure_ascii=False)
 

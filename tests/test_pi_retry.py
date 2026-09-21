@@ -12,10 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import antomnievo.proposer.pi_coding_agent_proposer as mod
-from antomnievo.model.trajectory import Trajectory
+from antomnievo.model.trajectory import Span, Trajectory
 from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.utils.pi_coding_agent_utils import (
     MAX_RETRY_ATTEMPTS,
+    PiEmptyResponseError,
     classify_pi_error,
 )
 
@@ -27,6 +28,31 @@ def _make_proposer():
     p._sem = asyncio.Semaphore(2)
     p._config = MagicMock()
     return p
+
+
+def _healthy_trajectory() -> Trajectory:
+    """A session that did work and ended with a final text message."""
+    tool = Span(name="read", span_type="tool_call", input={"path": "/x"})
+    return Trajectory(
+        root_span_list=[
+            Span(name="model", span_type="model", children=[tool]),
+            Span(name="model", span_type="model", output="done"),
+        ],
+        errors=[],
+    )
+
+
+def _degenerate_trajectory() -> Trajectory:
+    """Gateway-overload shape: one productive turn, then 4 consecutive empty
+    model responses (no text / thinking / tool calls) and a clean CLI exit."""
+    tool = Span(name="read", span_type="tool_call", input={"path": "/x"})
+    return Trajectory(
+        root_span_list=[
+            Span(name="model", span_type="model", children=[tool]),
+            *[Span(name="model", span_type="model") for _ in range(4)],
+        ],
+        errors=[],
+    )
 
 
 # ---- pure helpers ----
@@ -69,7 +95,7 @@ def test_retries_transient_runtime_error_then_succeeds():
         return "raw-ok"
 
     def fake_parse(raw):
-        return Trajectory(root_span_list=[], errors=[]), UsageStats()
+        return _healthy_trajectory(), UsageStats()
 
     with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
          patch.object(mod, "parse_pi_json_output", fake_parse), \
@@ -120,7 +146,7 @@ def test_retries_trajectory_rate_limit_then_succeeds():
     def fake_parse(raw):
         if state["n"] < 2:
             return Trajectory(root_span_list=[], errors=["429 rate limit exceeded"]), UsageStats()
-        return Trajectory(root_span_list=[], errors=[]), UsageStats()
+        return _healthy_trajectory(), UsageStats()
 
     with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
          patch.object(mod, "parse_pi_json_output", fake_parse), \
@@ -187,3 +213,77 @@ def test_exhausts_trajectory_rate_limit_reraises():
             asyncio.run(p.invoke_agent("p", "/tmp"))
 
     assert sleep_mock.await_count == MAX_RETRY_ATTEMPTS - 1
+
+
+# ---- degenerate (empty-response) trajectories ----
+
+def test_retries_degenerate_trajectory_then_succeeds():
+    """A clean-exit session whose model responses turn empty is retried — this
+    failure mode carries no error text, so it never reaches trajectory.errors
+    and previously slipped through as a silent success."""
+    p = _make_proposer()
+    state = {"n": 0}
+
+    async def fake_invoke(prompt, cwd, config):
+        state["n"] += 1
+        return "raw"
+
+    def fake_parse(raw):
+        if state["n"] < 3:
+            return _degenerate_trajectory(), UsageStats()
+        return _healthy_trajectory(), UsageStats()
+
+    with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
+         patch.object(mod, "parse_pi_json_output", fake_parse), \
+         _patch_sleep() as sleep_mock:
+        traj, stats = asyncio.run(p.invoke_agent("p", "/tmp"))
+
+    assert state["n"] == 3
+    assert sleep_mock.await_count == 2
+    assert traj.errors == []
+
+
+def test_exhausts_degenerate_trajectory_reraises():
+    p = _make_proposer()
+
+    async def fake_invoke(prompt, cwd, config):
+        return "raw"
+
+    def fake_parse(raw):
+        return _degenerate_trajectory(), UsageStats()
+
+    with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
+         patch.object(mod, "parse_pi_json_output", fake_parse), \
+         _patch_sleep() as sleep_mock:
+        with pytest.raises(PiEmptyResponseError):
+            asyncio.run(p.invoke_agent("p", "/tmp"))
+
+    assert sleep_mock.await_count == MAX_RETRY_ATTEMPTS - 1
+
+
+def test_single_trailing_empty_span_tolerated():
+    """One content-free final message right after the last tool call is a
+    healthy end (work was done) — must NOT be flagged degenerate."""
+    p = _make_proposer()
+
+    async def fake_invoke(prompt, cwd, config):
+        return "raw"
+
+    def fake_parse(raw):
+        tool = Span(name="write", span_type="tool_call", input={"path": "/x"})
+        traj = Trajectory(
+            root_span_list=[
+                Span(name="model", span_type="model", children=[tool]),
+                Span(name="model", span_type="model"),  # one empty final message
+            ],
+            errors=[],
+        )
+        return traj, UsageStats()
+
+    with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
+         patch.object(mod, "parse_pi_json_output", fake_parse), \
+         _patch_sleep() as sleep_mock:
+        traj, _ = asyncio.run(p.invoke_agent("p", "/tmp"))
+
+    assert sleep_mock.await_count == 0
+    assert traj.errors == []
