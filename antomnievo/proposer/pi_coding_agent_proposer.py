@@ -19,12 +19,14 @@ from antomnievo.proposer.utils.pi_coding_agent_utils import (
     PROVIDER_ANTHROPIC,
     RETRYABLE,
     PiCodingAgentConfig,
+    PiEmptyResponseError,
     PiThinkingLevel,
     Provider,
     classify_pi_error,
     invoke_pi_coding_agent,
     log_retry_sleep,
 )
+from antomnievo.proposer.utils.trajectory_utils import find_degenerate_ending
 
 
 class PiCodingAgentProposer(BaseProposer):
@@ -127,4 +129,11 @@ class PiCodingAgentProposer(BaseProposer):
                 e for e, v in zip(trajectory.errors, verdicts, strict=False) if v == "retryable"
             )
             raise RuntimeError(f"Pi trajectory transient error: {err}")
+        if not trajectory.errors:
+            # Empty-response aborts carry no error text, so they never reach
+            # trajectory.errors (Pi exits 0) — detect them by span shape and
+            # join the same retry path as explicit 429s.
+            degenerate = find_degenerate_ending(trajectory)
+            if degenerate:
+                raise PiEmptyResponseError(f"Pi trajectory degenerate: {degenerate}")
         return trajectory, stats

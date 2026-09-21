@@ -9,8 +9,8 @@ from abc import abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 
-from antomnievo.common.utils.fs_utils import get_latest_mtime
-from antomnievo.interface.candidate_store import CandidateStore
+from antomnievo.common.utils.fs_utils import file_written_since, get_latest_mtime
+from antomnievo.interface.candidate_store import NO_ANALYSIS_RESULTS, CandidateStore
 from antomnievo.interface.evaluator import Evaluator
 from antomnievo.interface.proposer import Proposer
 from antomnievo.interface.system import System
@@ -276,8 +276,24 @@ class BaseProposer(Proposer):
         ]
         prompt = prompt_builder(data_id, run_file_paths, parent_meta.candidate_id)
 
+        start_ts = datetime.now().timestamp()
         trajectory, stats = await self.invoke_agent(prompt, parent_meta.data_dir)
         check_trajectory_issues(trajectory, phase=f"{phase_label}/{data_id}")
+
+        if not trajectory.errors:
+            # The analysis agent writes the result file itself (see analysis
+            # prompt); a clean-exit session that never (re)wrote it is a silent
+            # failure — e.g. the model died on empty gateway responses mid-run.
+            # "LLM call succeeded" is NOT proof the analysis landed on disk,
+            # so verify the artifact before letting Phase 2 build on it.
+            result_path = self.candidate_store.analysis_result_path(
+                parent_meta.candidate_id, data_id
+            )
+            if not file_written_since(result_path, start_ts):
+                raise RuntimeError(
+                    f"Phase 1 ({phase_label}): analysis result file was not written "
+                    f"for data_id={data_id}: {result_path}"
+                )
 
         return trajectory, stats
 
@@ -367,6 +383,20 @@ class BaseProposer(Proposer):
         """Phase 2: Read analysis and propose tunable-artifact modifications."""
         parent_meta = self.candidate_store.get_meta(parent_candidate_id)
         new_meta = self.candidate_store.get_meta(new_candidate_id)
+        # Fail fast when Phase 1 produced nothing actionable: proposing on an
+        # empty evidence base burns a full agent run and reliably ends with
+        # "no files modified".
+        analysis_content = self.candidate_store.read_all_analysis_json_content(
+            parent_candidate_id, last_n=self.last_n_analysis
+        )
+        if analysis_content == NO_ANALYSIS_RESULTS:
+            return ProposalResult(
+                success=False,
+                error_message=(
+                    f"No analysis results available for parent {parent_candidate_id}; "
+                    "skipping propose"
+                ),
+            )
         propose_prompt = self._build_propose_prompt(parent_meta, new_meta)
         return await self._run_mutation_pipeline(
             parent_candidate_id=parent_candidate_id,

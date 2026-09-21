@@ -95,6 +95,18 @@ _FATAL_MARKERS: tuple[str, ...] = (
 )
 
 
+class PiEmptyResponseError(RuntimeError):
+    """Pi's model returned repeated empty responses (transient gateway overload).
+
+    Distinct from message-based classification: an empty assistant message
+    carries no error text, so nothing matches ``_RETRYABLE_MARKERS`` and the
+    failure would slip past ``classify_pi_error`` as 'unknown' — never retried,
+    never surfaced in ``trajectory.errors`` (Pi exits 0). Detected by shape via
+    ``find_degenerate_ending`` and raised as this type so it joins the same
+    retry path as 429s.
+    """
+
+
 def classify_pi_error(text: str) -> str:
     """Classify a Pi/gateway error string as ``'retryable'``, ``'fatal'``, or ``'unknown'``.
 
@@ -113,9 +125,13 @@ def classify_pi_error(text: str) -> str:
 
 
 def is_retryable_pi_exception(exc: BaseException) -> bool:
-    """True for transient RuntimeErrors (429 / rate-limit / 5xx). Auth (401/403)
+    """True for transient RuntimeErrors (429 / rate-limit / 5xx) and for
+    ``PiEmptyResponseError`` (repeated empty model responses — transient
+    gateway overload by shape, no error text to classify). Auth (401/403)
     and unknown errors return False — not retried (retrying auth is pointless,
     retrying unknowns masks bugs)."""
+    if isinstance(exc, PiEmptyResponseError):
+        return True
     return isinstance(exc, RuntimeError) and classify_pi_error(str(exc)) == "retryable"
 
 
