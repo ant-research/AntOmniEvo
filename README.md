@@ -1,6 +1,6 @@
 # AntOmniEvo
 
-**An auto-evolution framework: optimize anything — your 7×24 algorithm engineers.**
+**An auto-evolution framework that optimizes anything — your 7×24 team of algorithm engineers.**
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE) [![arXiv](https://img.shields.io/badge/Paper-coming_soon-lightgrey.svg)](#paper)
 
