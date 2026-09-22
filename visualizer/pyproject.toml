@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ant-omnievo-visualizer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Flask backend for the AntOmniEvo visualization frontend"
 requires-python = ">=3.10"
 # Table form — see the note in the root pyproject.toml (CI image caps at

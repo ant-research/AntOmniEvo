@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ant-omnievo"
-version = "0.1.0"
+version = "0.1.1"
 description = "Auto-optimization framework for AI agent systems"
 requires-python = ">=3.10"
 # Table form, not PEP 639 string form: the CI build image (python3.7) caps at
