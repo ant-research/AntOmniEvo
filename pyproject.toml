@@ -8,8 +8,11 @@ name = "ant-omnievo"
 version = "0.1.0"
 description = "Auto-optimization framework for AI agent systems"
 requires-python = ">=3.10"
-license = "Apache-2.0"
-license-files = ["LICENSE"]
+# Table form, not PEP 639 string form: the CI build image (python3.7) caps at
+# setuptools 68, which rejects `license = "..."` and the `license-files` key.
+# Table form is deprecated but supported by modern setuptools until 2027-02-18;
+# LICENSE is still auto-included in dists via setuptools' default globbing.
+license = {text = "Apache-2.0"}
 # Core runtime dependencies only. Scenarios that need more (RAG, visualizer)
 # pull them in via the optional-dependencies extras below.
 dependencies = [

@@ -29,6 +29,12 @@ pitfall-avoidance that a human used to do by hand.
 
 ### eddy-antomnievo-experiment
 
+**Purpose-built for the eddy high-code agent runtime.** This skill exists to make standing up an
+AntOmniEvo optimization experiment on an eddy business agent a fixed, repeatable path — its steps,
+recipes, and pitfall logs are all written against eddy-specific mechanics (entry discovery,
+trajectory schema, sandbox-transport, MCP identity). **Other runtimes may use it as a reference
+template for distilling their own skill, but cannot use it directly.**
+
 For onboarding an **Ant internal high-code agent runtime (eddy) business agent** onto AntOmniEvo —
 you have an eddy agent and want AntOmniEvo to evolve user-chosen tunable artifacts of it (prompts,
 skills, configs). Covers the full path from workspace/data setup through `generate.py` /

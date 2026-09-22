@@ -7,8 +7,9 @@ name = "ant-omnievo-visualizer"
 version = "0.1.0"
 description = "Flask backend for the AntOmniEvo visualization frontend"
 requires-python = ">=3.10"
-license = "Apache-2.0"
-license-files = ["../LICENSE"]
+# Table form — see the note in the root pyproject.toml (CI image caps at
+# setuptools 68; PEP 639 string form needs setuptools>=77).
+license = {text = "Apache-2.0"}
 dependencies = [
     "ant-omnievo",
     "flask>=3.0",
