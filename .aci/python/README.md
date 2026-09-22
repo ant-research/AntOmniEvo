@@ -11,7 +11,7 @@ internal package source, so both are `pip install`-able internally.
 | `ant-omnievo` | `${ACB_BUILD_DIR}/code-repo` (repo root, flat) | publish first |
 | `ant-omnievo-visualizer` | `${ACB_BUILD_DIR}/code-repo/visualizer` | depends on `ant-omnievo` (resolved from `simple` at install) |
 
-Both: `python -m build` (sdist + wheel), setuptools; version `0.1.0` read from
+Both: `python -m build` (sdist + wheel), setuptools; version `0.1.1` read from
 each `pyproject.toml` — bump per release.
 
 ## Internal source
