@@ -96,7 +96,7 @@ async def load_dataset(
 
     Args:
         data_dir: Terminal-Bench dataset root (e.g.
-            ``~/work/terminalbench2/dataset``). Auto-opt points directly at
+            ``~/work/terminalbench2/dataset``). AntOmniEvo points directly at
             the full ``dataset/`` and passes ``exclude`` to drop tasks that
             can't be solved offline — no separate ``dataset-training/`` split
             is maintained.
