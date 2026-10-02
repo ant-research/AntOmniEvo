@@ -652,3 +652,40 @@ class TestProposeGate:
         result = asyncio.run(proposer._mutate(root.candidate_id, child.candidate_id))
         assert not result.success
         assert "No analysis results" in result.error_message
+
+
+class TestMutationChangeDetection:
+    def _run_mutation(self, proposer, store, edit):
+        root = store.create_root()
+        for name in ("SKILL.md", "bad_rule.md"):
+            with open(os.path.join(root.artifact_dir, name), "w") as f:
+                f.write("content")
+        child = store.create_child(root.candidate_id)
+
+        async def fake_invoke(prompt, cwd):
+            edit(cwd)
+            return Trajectory(
+                root_span_list=[Span(name="model", span_type="model", output="ok")]
+            ), UsageStats()
+
+        proposer.invoke_agent = fake_invoke
+        return asyncio.run(proposer._run_mutation_pipeline(
+            root.candidate_id, child.candidate_id, prompt="p", phase_label="Propose",
+        ))
+
+    def test_delete_only_edit_counts_as_change(self, proposer, store):
+        result = self._run_mutation(proposer, store, lambda cwd: os.remove(os.path.join(cwd, "bad_rule.md")))
+        assert result.success
+
+    def test_modified_file_counts_as_change(self, proposer, store):
+        def edit(cwd):
+            with open(os.path.join(cwd, "SKILL.md"), "w") as f:
+                f.write("new content")
+
+        result = self._run_mutation(proposer, store, edit)
+        assert result.success
+
+    def test_no_edit_fails(self, proposer, store):
+        result = self._run_mutation(proposer, store, lambda cwd: None)
+        assert not result.success
+        assert "No tunable-artifact files were modified" in result.error_message

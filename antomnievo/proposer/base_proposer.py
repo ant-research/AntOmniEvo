@@ -9,7 +9,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 from datetime import datetime
 
-from antomnievo.common.utils.fs_utils import file_written_since, get_latest_mtime
+from antomnievo.common.utils.fs_utils import file_written_since, snapshot_files
 from antomnievo.interface.candidate_store import NO_ANALYSIS_RESULTS, CandidateStore
 from antomnievo.interface.evaluator import Evaluator
 from antomnievo.interface.proposer import Proposer
@@ -412,15 +412,15 @@ class BaseProposer(Proposer):
         prompt: str,
         phase_label: str,
     ) -> ProposalResult:
-        """Shared core of Phase 2: invoke agent in the new tunable-artifact dir, persist trajectory, check mtime."""
+        """Shared core of Phase 2: invoke agent in the new tunable-artifact dir, persist trajectory, check for file changes."""
         start_time = datetime.now()
         new_meta = self.candidate_store.get_meta(new_candidate_id)
 
         try:
-            mtime_before = get_latest_mtime(new_meta.artifact_dir)
+            files_before = snapshot_files(new_meta.artifact_dir)
             logger.info(f"Phase 2 ({phase_label}): invoking propose agent in {new_meta.artifact_dir}")
             trajectory, stats = await self.invoke_agent(prompt, new_meta.artifact_dir)
-            mtime_after = get_latest_mtime(new_meta.artifact_dir)
+            files_after = snapshot_files(new_meta.artifact_dir)
 
             check_trajectory_issues(trajectory, phase=phase_label)
             # Persist the trajectory FIRST, even on fatal LLM errors, so the
@@ -443,7 +443,7 @@ class BaseProposer(Proposer):
                     stats=stats,
                 )
 
-            if mtime_after <= mtime_before + _MTIME_EPS:
+            if files_after == files_before:
                 return ProposalResult(success=False, error_message="No tunable-artifact files were modified", stats=stats)
 
             return ProposalResult(success=True, stats=stats)
