@@ -228,7 +228,7 @@ class BaseProposer(Proposer):
                 if first_fatal_error is None:
                     first_fatal_error = trajectory.errors[0]
                 logger.error(
-                    f"Phase 1 ({phase_label}): data_id={data_id} LLM call failed: "
+                    f"Phase 1 ({phase_label}): data_id={data_id} agent session failed: "
                     f"{trajectory.errors[0][:160]}"
                 )
             else:
@@ -255,7 +255,7 @@ class BaseProposer(Proposer):
                 # instead of a generic "N data_id(s) failed" that hides it.
                 return ProposalResult(
                     success=False,
-                    error_message=f"{data_ids_fail} data_id(s) failed analysis; LLM call failed: {first_fatal_error[:200]}",
+                    error_message=f"{data_ids_fail} data_id(s) failed analysis; agent session failed: {first_fatal_error[:200]}",
                     stats=aggregated,
                 )
             return ProposalResult(success=False, error_message=f"{data_ids_fail} data_id(s) failed analysis", stats=aggregated)
@@ -432,14 +432,16 @@ class BaseProposer(Proposer):
             )
 
             if trajectory.errors:
-                # The LLM call itself failed (e.g. antchat 401 服务未授权, 5xx,
-                # rate limit). Surface the real cause instead of the misleading
-                # "No tunable-artifact files were modified" — the agent never got to run.
+                # The agent session failed (401/5xx/rate limit, or an abort such
+                # as Claude Code's error_max_turns). This check runs BEFORE the
+                # file-change check on purpose: an aborted session may already
+                # have edited files, and a half-finished mutation must not be
+                # rolled out as a candidate.
                 err = trajectory.errors[0]
-                logger.error(f"Phase 2 ({phase_label}): LLM call failed: {err[:200]}")
+                logger.error(f"Phase 2 ({phase_label}): agent session failed: {err[:200]}")
                 return ProposalResult(
                     success=False,
-                    error_message=f"LLM call failed (stopReason=error): {err[:300]}",
+                    error_message=f"Agent session failed: {err[:300]}",
                     stats=stats,
                 )
 

@@ -32,6 +32,7 @@ def parse_stream_json(raw_output: str) -> tuple[Trajectory, UsageStats]:
     current_model_span: Span | None = None
     tool_result_map: dict[str, str] = {}
     stats = UsageStats()
+    errors: list[str] = []
 
     for line in raw_output.strip().splitlines():
         line = line.strip()
@@ -100,6 +101,16 @@ def parse_stream_json(raw_output: str) -> tuple[Trajectory, UsageStats]:
                 stats.cache_creation_input_tokens = usage.get("cache_creation_input_tokens", 0)
                 stats.cache_read_input_tokens = usage.get("cache_read_input_tokens", 0)
 
+            # Claude Code marks an aborted session on the final result event:
+            # ``is_error: true`` plus a ``subtype`` such as ``error_max_turns``
+            # or ``error_during_execution``. Files edited before the abort are
+            # still on disk, so without this the caller would mistake a
+            # half-finished session for a successful one.
+            subtype = event.get("subtype") or ""
+            if event.get("is_error") or subtype.startswith("error"):
+                detail = str(result_text).strip() or "(no error text)"
+                errors.append(f"Claude Code session ended with {subtype or 'error'}: {detail[:300]}")
+
     # Attach any remaining tool results to matching tool spans
     for tc_id, result in tool_result_map.items():
         for span in root_spans:
@@ -108,7 +119,7 @@ def parse_stream_json(raw_output: str) -> tuple[Trajectory, UsageStats]:
                     child.output = {"result": result}
                     break
 
-    return Trajectory(root_span_list=root_spans), stats
+    return Trajectory(root_span_list=root_spans, errors=errors), stats
 
 
 def parse_pi_json_output(raw_output: str) -> tuple[Trajectory, UsageStats]:
@@ -718,13 +729,23 @@ def _collect_agent_errors(trajectory: Trajectory, stats: UsageStats) -> None:
     ``401 service not authorized``, a 5xx, or a rate limit. We surface these by recording
     them on the trajectory rather than raising, so the caller can **first
     persist the trajectory** (which still contains the error spans) and then
-    decide whether to abort. A run with usable model output (output_tokens > 0)
-    is treated as successful regardless of stray error turns; only an all-error
-    / zero-output run is flagged fatal.
+    decide whether to abort.
+
+    Rule (shared with the Claude Code parser, which reads the same signal from
+    its final ``result`` event): a session is failed when it *ends* on an error
+    — the agent stopped there, so whatever it edited before is half-finished —
+    or when it never produced any output at all. Error turns the agent
+    recovered from mid-session are tolerated.
     """
-    if stats.output_tokens > 0:
+    model_spans = [s for s in trajectory.root_span_list if s.span_type == "model"]
+    error_spans = [s for s in model_spans if s.metadata.get("stop_reason") == "error"]
+    if not error_spans:
         return
-    for span in trajectory.root_span_list:
-        if span.span_type == "model" and span.metadata.get("stop_reason") == "error":
-            err = span.metadata.get("error_message") or "unknown LLM error"
-            trajectory.errors.append(err)
+
+    def _err(span: Span) -> str:
+        return span.metadata.get("error_message") or "unknown LLM error"
+
+    if model_spans[-1] in error_spans:
+        trajectory.errors.append(f"agent session ended with an error: {_err(model_spans[-1])}")
+    elif stats.output_tokens == 0:
+        trajectory.errors.extend(_err(s) for s in error_spans)
