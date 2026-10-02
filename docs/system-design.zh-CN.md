@@ -152,7 +152,7 @@ sequenceDiagram
 
 ## 5. Proposer:两阶段流程(让 Agent 优化系统)
 
-- **Phase 1 分析**(`_analyze`):`find_unanalyzed_runs` 找出比最新 analysis 新的 run,按 `data_id` 分组;**每个 data_id 并发起一个 coding agent**(cwd = parent `data_dir`),读可调产物(只读)+ run 文件,产出一份 `RunAnalysis`(`trajectory_analysis` 观察 + `actions` 处方),跑 `validate-analysis` 自检。所有 per-data_id trajectory 合并落盘到 `analysis/trajectory/{new_id}.json`。
+- **Phase 1 分析**(`_analyze`):`find_unanalyzed_runs` 按 `data_id` 分组,找出比该 `data_id` 自己的 analysis 新的 run;**每个 data_id 并发起一个 coding agent**(cwd = parent `data_dir`),读可调产物(只读)+ run 文件,产出一份 `RunAnalysis`(`trajectory_analysis` 观察 + `actions` 处方),跑 `validate-analysis` 自检。所有 per-data_id trajectory 合并落盘到 `analysis/trajectory/{new_id}.json`。
 - **Phase 2 变异**(`_mutate`):起一个 coding agent(cwd = child `artifact_dir`),读多份 analysis、去重 / 消解矛盾、原地改文件、记下 `mtime_before`;跑完先落盘 Phase-2 trajectory 再判错(`trajectory.errors` 非空 → 失败;无文件改动 → 失败),然后**必须**跑 `append-changelog` 把 diff 追加到 `{new_data_dir}/changelog.jsonl`。
 - **`RunAnalysis`**:`data_id` + `trajectory_analysis: list[str]` + `actions: list[ArtifactAction]` + `data_quality_issues: list[str]`(与上面互斥)。`ArtifactAction` = `file`(相对 artifact 根的具体路径)+ `operation`(add/delete/modify)+ `artifact_issue`(诊断)+ `change`(modify 用 BEFORE/AFTER)+ `resolves[]`(回指 `trajectory_analysis` 下标,必须非空且在范围内)。
 - **反思流程**(`reflect`):Phase 1 改用 `REFLECTION_ANALYSIS_PROMPT_TEMPLATE`,把整条链上下文(chain_id_path、逐题分数表带 Δ 列、归属化 changelog、每个链节对该 data_id 已有 analysis、链节 run 文件)**预加载进 prompt**,强制五法诊断 + A–I 诊断表,偏好 REMOVE/REPLACE、要求点名责任链节、找「丢失的赢点」。Phase 2 机制完全不变,链路学习只体现在 analysis JSON 一层。

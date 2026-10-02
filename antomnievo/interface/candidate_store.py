@@ -50,8 +50,8 @@ class CandidateStore(ABC):
        working directory, not a key.
 
     2. **mtime-equivalent ordering.** ``find_unanalyzed_runs`` computes which
-       run records are newer than the most recent analysis result, using file
-       modification timestamps. A remote backend must expose a last-modified
+       run records are newer than the analysis result of the same data_id,
+       using file modification timestamps. A remote backend must expose a last-modified
        timestamp (or equivalent monotonic ordering) per object so this
        freshness-diff semantics keeps working.
 
@@ -509,11 +509,12 @@ class CandidateStore(ABC):
 
     @abstractmethod
     def find_unanalyzed_runs(self, candidate_id: str) -> dict[str, list[str]]:
-        """Return ``{data_id: [run_name, …]}`` for runs newer than the latest analysis result.
+        """Return ``{data_id: [run_name, …]}`` for runs newer than their data_id's analysis result.
 
-        Freshness is computed via mtime-equivalent ordering (contract #2):
-        runs whose last-modified timestamp exceeds the newest analysis-result
-        timestamp are "unanalyzed" and returned. Train split only.
+        Freshness is computed via mtime-equivalent ordering (contract #2), per
+        data_id: runs whose last-modified timestamp exceeds the timestamp of
+        that same data_id's analysis result (or all runs, if the data_id has no
+        analysis result yet) are "unanalyzed" and returned. Train split only.
 
         Args:
             candidate_id: The candidate id to inspect.

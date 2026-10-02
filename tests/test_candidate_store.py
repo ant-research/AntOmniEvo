@@ -207,6 +207,33 @@ class TestCandidateStore:
         store.update_analysis(cid, analysis)
         assert store.find_unanalyzed_runs(cid) == {}
 
+    def test_find_unanalyzed_runs_is_per_data_id(self, store: CandidateStore, root_candidate: CandidateMeta):
+        from datetime import datetime
+
+        from antomnievo.interface.data_inst import DataInst
+        from antomnievo.model.candidate_data import RunRecord
+        from antomnievo.model.rollout_result import RolloutResult
+
+        cid = root_candidate.candidate_id
+        for data_id in ("q1", "q2"):
+            store.save_run_record(cid, RunRecord(
+                candidate_id=cid,
+                timestamp=datetime.now(),
+                data_inst=DataInst(id=data_id, query="test", golden_answer="answer"),
+                system_result=SystemResult(
+                    trajectory=Trajectory(root_span_list=[]),
+                    output=RolloutResult(content="out"),
+                ),
+                evaluation_result=EvaluationResult(data_id=data_id, metric_name="m", score=0.0, reason="test"),
+            ))
+        time.sleep(0.01)
+
+        # q1's analysis lands, q2's analysis failed and wrote nothing.
+        store.update_analysis(cid, RunAnalysis(data_id="q1"))
+
+        unanalyzed = store.find_unanalyzed_runs(cid)
+        assert set(unanalyzed) == {"q2"}
+
     def test_changelog(self, store: CandidateStore, root_candidate: CandidateMeta):
         cid = root_candidate.candidate_id
         entry1 = ChangeLogEntry(

@@ -480,19 +480,16 @@ class LocalCandidateStore(CandidateStore):
         if not os.path.isdir(run_dir):
             return {}
 
-        # Find the latest mtime across all analysis result files
-        result_dir = self.analysis_result_dir(candidate_id)
-        since_ts = 0.0
-        if os.path.isdir(result_dir):
-            for fname in os.listdir(result_dir):
-                if fname.endswith(".json"):
-                    since_ts = max(since_ts, os.path.getmtime(os.path.join(result_dir, fname)))
-
         result: dict[str, list[str]] = {}
         for data_id in os.listdir(run_dir):
             data_dir = os.path.join(run_dir, data_id)
             if not os.path.isdir(data_dir):
                 continue
+            # Compare against this data_id's own analysis result only: a fresh
+            # result for another data_id must not mark these runs as analyzed
+            # (e.g. when this data_id's analysis failed in the same batch).
+            analysis_path = self.analysis_result_path(candidate_id, data_id)
+            since_ts = os.path.getmtime(analysis_path) if os.path.exists(analysis_path) else 0.0
             for f in os.listdir(data_dir):
                 if f.startswith("run_") and f.endswith(".json"):
                     fpath = os.path.join(data_dir, f)
