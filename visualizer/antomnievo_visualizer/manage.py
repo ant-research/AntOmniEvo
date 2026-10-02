@@ -24,6 +24,9 @@ FRONTEND_PORT = 5173
 # Bind address for both services. Override via --host on the CLI.
 HOST = '127.0.0.1'
 
+# Workspace the frontend opens on load. Set via --workspace on the CLI.
+WORKSPACE: str | None = None
+
 # Tracked subprocesses.
 processes = {}
 
@@ -82,15 +85,15 @@ def start_api(force: bool = False) -> subprocess.Popen:
     env = os.environ.copy()
     env['PYTHONUNBUFFERED'] = '1'
 
-    proc = subprocess.Popen(
-        [
-            sys.executable, '-m', 'antomnievo_visualizer.server',
-            '--api-port', str(API_PORT),
-            '--frontend-port', str(FRONTEND_PORT),
-            '--host', HOST,
-        ],
-        env=env,
-    )
+    cmd = [
+        sys.executable, '-m', 'antomnievo_visualizer.server',
+        '--api-port', str(API_PORT),
+        '--frontend-port', str(FRONTEND_PORT),
+        '--host', HOST,
+    ]
+    if WORKSPACE:
+        cmd += ['--workspace', WORKSPACE]
+    proc = subprocess.Popen(cmd, env=env)
     processes['api'] = proc
     print(f"✓ Backend API server started (PID: {proc.pid})")
     return proc
@@ -147,7 +150,7 @@ def status():
 
 
 def main():
-    global API_PORT, FRONTEND_PORT, HOST
+    global API_PORT, FRONTEND_PORT, HOST, WORKSPACE
     parser = argparse.ArgumentParser(description='AntOmniEvo Visualizer Manager')
     parser.add_argument('action', choices=['start', 'stop', 'restart', 'status'],
                         help='Action to perform')
@@ -164,12 +167,15 @@ def main():
     parser.add_argument('--host', type=str, default=HOST,
                         help=f'Bind address for both services [default: {HOST}]. Non-loopback '
                              'hosts expose workspace files to the network.')
+    parser.add_argument('--workspace', type=str, default=None,
+                        help='Workspace (optimization run directory) the frontend opens on load')
 
     args = parser.parse_args()
 
     API_PORT = args.api_port
     FRONTEND_PORT = args.frontend_port
     HOST = args.host
+    WORKSPACE = os.path.abspath(os.path.expanduser(args.workspace)) if args.workspace else None
 
     if args.action == 'start':
         print("🚀 Starting AntOmniEvo Visualizer...")

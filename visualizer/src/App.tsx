@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './pages/Dashboard';
-import { browseDirectory, type BrowseResult } from './utils/api';
+import { browseDirectory, getWorkspaceConfig, type BrowseResult } from './utils/api';
 
 function DirectoryBrowser({
   onSelect,
@@ -109,17 +109,37 @@ function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
 
-  // Read workspace from URL params. No default path: a hardcoded one would be
-  // wrong for anyone else (and stale for us) — ask the user instead.
+  // Read workspace from URL params, falling back to the backend's configured
+  // root (`--workspace`). No hardcoded default: it would be wrong for anyone
+  // else (and stale for us) — ask the user instead.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ws = params.get('workspace');
     if (ws) {
       setWorkspacePath(ws);
       setInputValue(ws);
-    } else {
-      setIsEditing(true);
+      return;
     }
+    let cancelled = false;
+    getWorkspaceConfig()
+      .then(({ workspace_root, exists }) => {
+        if (cancelled) return;
+        if (workspace_root && exists) {
+          setWorkspacePath(workspace_root);
+          setInputValue(workspace_root);
+          const url = new URL(window.location.href);
+          url.searchParams.set('workspace', workspace_root);
+          window.history.replaceState({}, '', url);
+        } else {
+          setIsEditing(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsEditing(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const applyWorkspace = (path: string) => {
