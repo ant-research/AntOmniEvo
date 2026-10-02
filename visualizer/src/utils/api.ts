@@ -16,6 +16,15 @@ export function getApiBase(): string {
   return apiUrl || API_BASE;
 }
 
+// Read the backend's current WORKSPACE_ROOT (e.g. set via `--workspace` at startup)
+export async function getWorkspaceConfig(): Promise<{ workspace_root: string | null; exists: boolean }> {
+  const response = await fetch(`${getApiBase()}/api/config/workspace`);
+  if (!response.ok) {
+    throw new Error(`Failed to get workspace config: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 // Set backend WORKSPACE_ROOT; must be called before other GET requests
 export async function setWorkspaceConfig(workspacePath: string): Promise<void> {
   const response = await fetch(`${getApiBase()}/api/config/workspace`, {
