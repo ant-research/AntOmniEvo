@@ -25,7 +25,13 @@ from antomnievo_visualizer.workspace_reader import (
 )
 
 app = Flask(__name__)
-CORS(app)
+
+LOOPBACK_HOSTS = {'127.0.0.1', 'localhost', '::1'}
+
+# Host names accepted in the Host header, or None to accept any. Set in main()
+# when bound to loopback, so a DNS-rebinding page cannot reach the API under
+# its own domain name.
+ALLOWED_HOSTS: set[str] | None = None
 
 # Workspace root path. Set via --workspace flag or POST /api/config/workspace.
 # All endpoints read from this single global root — clients cannot specify a
@@ -35,6 +41,36 @@ WORKSPACE_ROOT: str | None = None
 # Frontend dev server port. Used by the /api/admin/stop endpoint to also
 # tear down the Vite process. Overridable via --frontend-port.
 FRONTEND_PORT: int = 5173
+
+
+def configure_security(bind_host: str, frontend_port: int) -> None:
+    """Restrict CORS to the frontend origin and, on loopback binds, the Host header.
+
+    The API can read any file under the configured workspace root, so other
+    origins (any page open in the user's browser) must not be able to call it.
+    """
+    global ALLOWED_HOSTS
+    CORS(app, origins=[
+        f'http://localhost:{frontend_port}',
+        f'http://127.0.0.1:{frontend_port}',
+    ])
+    ALLOWED_HOSTS = LOOPBACK_HOSTS if bind_host in LOOPBACK_HOSTS else None
+
+
+@app.before_request
+def check_host_header():
+    if ALLOWED_HOSTS is None:
+        return None
+    host = request.host
+    name = host[1:host.index(']')] if host.startswith('[') else host.split(':')[0]
+    if name not in ALLOWED_HOSTS:
+        return jsonify({'error': f'Host not allowed: {host}'}), 403
+    return None
+
+
+def is_workspace_dir(path: str) -> bool:
+    """A workspace root is an optimization run directory, i.e. one with candidates/."""
+    return os.path.isdir(os.path.join(path, 'candidates'))
 
 
 def get_workspace_root() -> str:
@@ -80,6 +116,8 @@ def set_workspace_config():
         return jsonify({'error': f'path must be absolute: {path}'}), 400
     if not os.path.isdir(path):
         return jsonify({'error': f'path does not exist or is not a directory: {path}'}), 400
+    if not is_workspace_dir(path):
+        return jsonify({'error': f'not an optimization workspace (no candidates/ directory): {path}'}), 400
 
     WORKSPACE_ROOT = path
     print(f"[config] WORKSPACE_ROOT set to: {path}")
@@ -250,7 +288,8 @@ def open_directory():
 
     target = os.path.join(workspace_path, 'candidates', candidate_id)
     target = os.path.realpath(target)
-    if not target.startswith(os.path.realpath(workspace_path)):
+    candidates_root = os.path.realpath(os.path.join(workspace_path, 'candidates'))
+    if os.path.commonpath([candidates_root, target]) != candidates_root:
         return jsonify({'error': 'path traversal rejected'}), 403
     if not os.path.isdir(target):
         return jsonify({'error': f'Directory not found: {target}'}), 404
@@ -276,7 +315,7 @@ def _kill_port(port: int) -> list[str]:
     """SIGKILL every process listening on `port`; return the killed PIDs."""
     try:
         result = subprocess.run(
-            ['lsof', '-ti', str(port)],
+            ['lsof', '-ti', f'tcp:{port}', '-sTCP:LISTEN'],
             capture_output=True,
             text=True,
             check=False,
@@ -328,7 +367,9 @@ def main():
                         help='Backend (this API server) port [default: 3001]')
     parser.add_argument('--frontend-port', type=int, default=FRONTEND_PORT,
                         help='Frontend dev server port (used by /api/admin/stop) [default: 5173]')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind to')
+    parser.add_argument('--host', type=str, default='127.0.0.1',
+                        help='Host to bind to [default: 127.0.0.1]. Non-loopback hosts expose '
+                             'workspace files to the network.')
     parser.add_argument('--workspace', type=str, default=None,
                         help='Workspace root path')
     args = parser.parse_args()
@@ -339,8 +380,11 @@ def main():
             workspace = os.path.abspath(workspace)
         if not os.path.isdir(workspace):
             parser.error(f'--workspace path does not exist or is not a directory: {workspace}')
+        if not is_workspace_dir(workspace):
+            parser.error(f'--workspace is not an optimization workspace (no candidates/ directory): {workspace}')
         WORKSPACE_ROOT = workspace
     FRONTEND_PORT = args.frontend_port
+    configure_security(args.host, FRONTEND_PORT)
 
     print(f"Backend  (API): http://{args.host}:{args.api_port}")
     print(f"Frontend (dev): port {FRONTEND_PORT}  (killed by /api/admin/stop)")

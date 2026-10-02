@@ -31,7 +31,9 @@ antomnievo-visualizer-manage start
 - 前端:http://localhost:5173
 - API:http://localhost:3001
 
-`Ctrl+C` 停止。把前端指向想看的 `workspace/<run>` 目录即可。
+`Ctrl+C` 停止。把前端指向想看的 `workspace/<run>` 目录(需包含 `candidates/`)即可。
+
+两个服务默认只监听 `127.0.0.1`,API 只接受来自前端 origin 的跨域请求。API 能读取 workspace 下的任意文件,如确需从其他机器访问,可传 `--host 0.0.0.0`,但仅限可信网络。
 
 ## 3. 界面导览
 

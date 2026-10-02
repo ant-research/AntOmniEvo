@@ -33,6 +33,8 @@ antomnievo-visualizer-manage start
 
 `Ctrl+C` to stop. Point the front-end at the `workspace/<run>` directory you want to inspect.
 
+Both services bind to `127.0.0.1` by default, and the API only accepts cross-origin requests from the frontend origin. The API can read any file under the workspace, so pass `--host 0.0.0.0` only on a trusted network if you need access from another machine.
+
 ## 3. UI tour
 
 **Evolution — Lobster Gym.** The population rendered as a gym: candidates train as lobsters, grouped into tier rooms by score (Golden Hall at the top, Damp Basement at the bottom). Each card shows the candidate's short id, generation/epoch/index, average score, gain vs. root, tier, and live state (pending / evolving).

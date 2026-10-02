@@ -21,6 +21,9 @@ FRONTEND_DIR = PROJECT_ROOT
 API_PORT = 3001
 FRONTEND_PORT = 5173
 
+# Bind address for both services. Override via --host on the CLI.
+HOST = '127.0.0.1'
+
 # Tracked subprocesses.
 processes = {}
 
@@ -28,9 +31,9 @@ processes = {}
 def kill_port(port: int):
     """Kill any process listening on the given port."""
     try:
-        # Use lsof to find the PID(s) bound to the port.
+        # Use lsof to find the PID(s) listening on the port (not clients connected to it).
         result = subprocess.run(
-            ['lsof', '-ti', f':{port}'],
+            ['lsof', '-ti', f'tcp:{port}', '-sTCP:LISTEN'],
             capture_output=True,
             text=True
         )
@@ -51,7 +54,7 @@ def kill_port(port: int):
 def assert_port_free(port: int, force: bool = False):
     """Ensure the port is free. With force=True, kill any occupier instead of raising."""
     result = subprocess.run(
-        ['lsof', '-ti', f':{port}'],
+        ['lsof', '-ti', f'tcp:{port}', '-sTCP:LISTEN'],
         capture_output=True,
         text=True
     )
@@ -84,6 +87,7 @@ def start_api(force: bool = False) -> subprocess.Popen:
             sys.executable, '-m', 'antomnievo_visualizer.server',
             '--api-port', str(API_PORT),
             '--frontend-port', str(FRONTEND_PORT),
+            '--host', HOST,
         ],
         env=env,
     )
@@ -103,7 +107,7 @@ def start_frontend(force: bool = False) -> subprocess.Popen:
     env['PYTHONUNBUFFERED'] = '1'
 
     proc = subprocess.Popen(
-        ['npm', 'run', 'dev', '--', '--host', '0.0.0.0', '--port', str(FRONTEND_PORT)],
+        ['npm', 'run', 'dev', '--', '--host', HOST, '--port', str(FRONTEND_PORT)],
         env=env,
         cwd=str(FRONTEND_DIR),
     )
@@ -132,7 +136,7 @@ def status():
 
     for name, port in [('Backend ', API_PORT), ('Frontend', FRONTEND_PORT)]:
         result = subprocess.run(
-            ['lsof', '-ti', f':{port}'],
+            ['lsof', '-ti', f'tcp:{port}', '-sTCP:LISTEN'],
             capture_output=True,
             text=True
         )
@@ -143,7 +147,7 @@ def status():
 
 
 def main():
-    global API_PORT, FRONTEND_PORT
+    global API_PORT, FRONTEND_PORT, HOST
     parser = argparse.ArgumentParser(description='AntOmniEvo Visualizer Manager')
     parser.add_argument('action', choices=['start', 'stop', 'restart', 'status'],
                         help='Action to perform')
@@ -157,11 +161,15 @@ def main():
                         help=f'Frontend dev server port [default: {FRONTEND_PORT}]')
     parser.add_argument('--force', action='store_true',
                         help='If a target port is occupied, kill the occupier instead of failing')
+    parser.add_argument('--host', type=str, default=HOST,
+                        help=f'Bind address for both services [default: {HOST}]. Non-loopback '
+                             'hosts expose workspace files to the network.')
 
     args = parser.parse_args()
 
     API_PORT = args.api_port
     FRONTEND_PORT = args.frontend_port
+    HOST = args.host
 
     if args.action == 'start':
         print("🚀 Starting AntOmniEvo Visualizer...")
