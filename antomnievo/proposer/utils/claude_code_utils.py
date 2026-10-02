@@ -11,6 +11,8 @@ import os
 import sys
 from dataclasses import dataclass
 
+from antomnievo.common.utils.subprocess_utils import communicate_with_timeout
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -45,6 +47,8 @@ async def invoke_claude_code(
 
     Raises:
         RuntimeError: If Claude Code exits with a non-zero return code.
+        AgentTimeoutError: If Claude Code exceeds ``config.timeout``; the
+            process and its children are killed before raising.
     """
     cmd = [
         config.claude_code_path,
@@ -97,9 +101,7 @@ async def invoke_claude_code(
         stderr=asyncio.subprocess.PIPE,
         env=env,
     )
-    stdout, stderr = await asyncio.wait_for(
-        process.communicate(), timeout=config.timeout
-    )
+    stdout, stderr = await communicate_with_timeout(process, config.timeout, "Claude Code")
     if process.returncode != 0:
         stderr_msg = stderr.decode() if stderr else "(no stderr output)"
         stdout_msg = stdout.decode() if stdout else "(no stdout output)"

@@ -17,6 +17,8 @@ from typing import Literal
 
 from tenacity import retry_if_exception
 
+from antomnievo.common.utils.subprocess_utils import communicate_with_timeout
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_CONFIG_DIR = str(Path(__file__).resolve().parent.parent / "config" / "pi")
@@ -172,6 +174,9 @@ async def invoke_pi_coding_agent(
 
     Raises:
         RuntimeError: If Pi exits with a non-zero return code.
+        AgentTimeoutError: If Pi exceeds ``config.timeout``; the process and
+            its children are killed before raising. Not retried by
+            ``RETRYABLE`` — a hung session is not a transient gateway error.
     """
     cmd = [
         config.pi_path,
@@ -210,9 +215,7 @@ async def invoke_pi_coding_agent(
         stderr=asyncio.subprocess.PIPE,
         env=env,
     )
-    stdout, stderr = await asyncio.wait_for(
-        process.communicate(), timeout=config.timeout
-    )
+    stdout, stderr = await communicate_with_timeout(process, config.timeout, "Pi Coding Agent")
     if process.returncode != 0:
         stderr_msg = stderr.decode() if stderr else "(no stderr output)"
         stdout_msg = stdout.decode() if stdout else "(no stdout output)"
