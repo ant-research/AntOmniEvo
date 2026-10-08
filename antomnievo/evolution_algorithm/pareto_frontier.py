@@ -132,8 +132,18 @@ class ParetoFrontierEvolutionAlgorithm(EvolutionAlgorithm):
 
     @staticmethod
     def _is_dominated(scores_a: list[float], scores_b: list[float]) -> bool:
-        """Check if a dominates b (a >= b on all dimensions)."""
-        return all(a + SCORE_EPS >= b for a, b in zip(scores_a, scores_b, strict=False))
+        """Check if a dominates b (a >= b on all dimensions).
+
+        Returns False when either list is empty or the two lists differ in
+        length: there is no evidence to rank the pair. Without this guard
+        ``all()`` over an empty ``zip`` is vacuously True, so with an empty val
+        set (an explicitly supported "skip validation" mode) every candidate
+        would "dominate" every other one and ``eliminate`` would collapse the
+        pool to a single survivor regardless of batch results.
+        """
+        if not scores_a or not scores_b or len(scores_a) != len(scores_b):
+            return False
+        return all(a + SCORE_EPS >= b for a, b in zip(scores_a, scores_b, strict=True))
 
     @staticmethod
     def _get_max_score_count_dict(

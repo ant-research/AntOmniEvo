@@ -617,15 +617,22 @@ class Optimizer:
         ``next_epoch``/``next_index`` is what the candidate's progress should
         advance to AFTER this slot completes (even on failure — see _evolve_one).
 
-        When ``dataset_index + batch_size > len(train_dataset)``, the slice is
-        tail-aligned (``train[n - batch_size : n]``) and progress wraps to the
-        next epoch with index reset to 0.
+        When ``dataset_index + batch_size >= len(train_dataset)`` this slot
+        consumes the LAST batch of the epoch: the slice is tail-aligned
+        (``train[max(0, n - batch_size) : n]``) and progress wraps to the next
+        epoch with index reset to 0. ``>=`` (not ``>``) matters when
+        ``len(train_dataset)`` is a multiple of ``batch_size``: with ``>`` the
+        cursor lands exactly on ``n`` and the following slot re-runs the tail
+        batch a second time before wrapping. ``max(0, ...)`` keeps the slice
+        start from going negative when ``batch_size > len(train_dataset)``,
+        which would silently drop the first items.
         """
         dataset_size = len(self.train_dataset)
         epoch, index = meta.epoch, meta.dataset_index
-        if index + self.batch_size > dataset_size:
-            batch = self.train_dataset[dataset_size - self.batch_size : dataset_size]
-            return batch, epoch + 1, 0, dataset_size - self.batch_size
+        if index + self.batch_size >= dataset_size:
+            start = max(0, dataset_size - self.batch_size)
+            batch = self.train_dataset[start:dataset_size]
+            return batch, epoch + 1, 0, start
         batch = self.train_dataset[index : index + self.batch_size]
         return batch, epoch, index + self.batch_size, index
 
