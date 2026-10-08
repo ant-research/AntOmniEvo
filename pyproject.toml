@@ -59,3 +59,8 @@ append-changelog = "antomnievo.proposer.scripts.append_changelog:main"
 
 [tool.setuptools.packages.find]
 include = ["antomnievo*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: spawns real subprocesses (skippable)",
+]

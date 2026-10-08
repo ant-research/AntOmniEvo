@@ -1,6 +1,6 @@
 """Tests for Pi Coding Agent invocation retry on transient gateway errors.
 
-Covers the pure decision helpers (``classify_pi_error``, ``retry_backoff_seconds``)
+Covers the pure decision helpers (``classify_agent_error``, ``retry_backoff_seconds``)
 and the retry loop inside ``PiCodingAgentProposer.invoke_agent``. The loop is
 exercised in isolation via ``__new__`` + the two attributes the method reads
 (``self._sem``, ``self._config``), with ``invoke_pi_coding_agent`` and
@@ -12,13 +12,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import antomnievo.proposer.pi_coding_agent_proposer as mod
+from antomnievo.common.utils.errors import (
+    MAX_RETRY_ATTEMPTS,
+    AgentEmptyResponseError,
+    classify_agent_error,
+)
 from antomnievo.model.trajectory import Span, Trajectory
 from antomnievo.model.usage_stats import UsageStats
-from antomnievo.proposer.utils.pi_coding_agent_utils import (
-    MAX_RETRY_ATTEMPTS,
-    PiEmptyResponseError,
-    classify_pi_error,
-)
 
 
 def _make_proposer():
@@ -73,8 +73,8 @@ def _degenerate_trajectory() -> Trajectory:
         ("429 rate limit but really 401 unauthorized", "fatal"),
     ],
 )
-def test_classify_pi_error(text, want):
-    assert classify_pi_error(text) == want
+def test_classify_agent_error(text, want):
+    assert classify_agent_error(text) == want
 
 
 # ---- loop behavior (tenacity-decorated _invoke_pi_once) ----
@@ -255,7 +255,7 @@ def test_exhausts_degenerate_trajectory_reraises():
     with patch.object(mod, "invoke_pi_coding_agent", fake_invoke), \
          patch.object(mod, "parse_pi_json_output", fake_parse), \
          _patch_sleep() as sleep_mock:
-        with pytest.raises(PiEmptyResponseError):
+        with pytest.raises(AgentEmptyResponseError):
             asyncio.run(p.invoke_agent("p", "/tmp"))
 
     assert sleep_mock.await_count == MAX_RETRY_ATTEMPTS - 1

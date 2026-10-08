@@ -5,6 +5,13 @@ from tenacity import (
     wait_random,
 )
 
+from antomnievo.common.utils.errors import (
+    MAX_RETRY_ATTEMPTS,
+    RETRYABLE,
+    AgentEmptyResponseError,
+    classify_agent_error,
+    log_retry_sleep,
+)
 from antomnievo.common.utils.trajectory_parser import parse_pi_json_output
 from antomnievo.interface.candidate_store import CandidateStore
 from antomnievo.interface.evaluator import Evaluator
@@ -15,16 +22,11 @@ from antomnievo.model.tunable_artifact_schema import TunableArtifactSchema
 from antomnievo.model.usage_stats import UsageStats
 from antomnievo.proposer.base_proposer import BaseProposer
 from antomnievo.proposer.utils.pi_coding_agent_utils import (
-    MAX_RETRY_ATTEMPTS,
     PROVIDER_ANTHROPIC,
-    RETRYABLE,
     PiCodingAgentConfig,
-    PiEmptyResponseError,
     PiThinkingLevel,
     Provider,
-    classify_pi_error,
     invoke_pi_coding_agent,
-    log_retry_sleep,
 )
 from antomnievo.proposer.utils.trajectory_utils import find_degenerate_ending
 
@@ -123,7 +125,7 @@ class PiCodingAgentProposer(BaseProposer):
         """
         raw_output = await invoke_pi_coding_agent(prompt, cwd, self._config)
         trajectory, stats = parse_pi_json_output(raw_output)
-        verdicts = [classify_pi_error(e) for e in trajectory.errors]
+        verdicts = [classify_agent_error(e) for e in trajectory.errors]
         if "retryable" in verdicts and "fatal" not in verdicts:
             err = next(
                 e for e, v in zip(trajectory.errors, verdicts, strict=False) if v == "retryable"
@@ -135,5 +137,5 @@ class PiCodingAgentProposer(BaseProposer):
             # join the same retry path as explicit 429s.
             degenerate = find_degenerate_ending(trajectory)
             if degenerate:
-                raise PiEmptyResponseError(f"Pi trajectory degenerate: {degenerate}")
+                raise AgentEmptyResponseError(f"Pi trajectory degenerate: {degenerate}")
         return trajectory, stats
