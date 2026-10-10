@@ -50,9 +50,10 @@ class ParetoFrontierEvolutionAlgorithm(EvolutionAlgorithm):
             return random.sample(available_id_list, k)
 
         max_score_counts = self._get_max_score_count_dict(score_lists)
-        k = min(num, len(max_score_counts))
+        # Zero-weight candidates cannot be drawn, even after all winners are selected.
+        remaining = {cid: count for cid, count in max_score_counts.items() if count > 0}
+        k = min(num, len(remaining))
         selected: list[str] = []
-        remaining = dict(max_score_counts)  # copy for mutation during selection
 
         for _ in range(k):
             if not remaining:
