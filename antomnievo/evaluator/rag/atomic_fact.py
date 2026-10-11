@@ -85,12 +85,15 @@ class AtomicFact:
             reasoning = content[: content.find("<judgement>")].strip()
         else:
             reasoning = content
-            judgement = "INCORRECT" if "INCORRECT" in content else "CORRECT"
+            # Keep support for a bare final verdict, but do not award full
+            # credit to empty, truncated, or inconclusive judge responses.
+            match = re.search(r"(?:^|\n)\s*(CORRECT|INCORRECT)\s*$", content)
+            judgement = match.group(1) if match else "INCORRECT"
         score = 1 if judgement == "CORRECT" else 0
         return AtomicFactResult(score=score, detail=reasoning)
 
     def _calculate_average_precision(self, verdicts: list[dict]) -> float:
-        scores = [1 if v.get("verdict") else 0 for v in verdicts]
+        scores = [1 if v.get("verdict") in (1, "1") else 0 for v in verdicts]
         return sum(scores) / len(scores) if scores else 0.0
 
     async def do_score(self, query: str, real_answer: str, true_answer: str) -> AtomicFactResult:

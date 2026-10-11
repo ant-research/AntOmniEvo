@@ -4,7 +4,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-atomic_fact = pytest.importorskip("antomnievo.evaluator.rag.atomic_fact_evaluator")
+
+@pytest.fixture(params=["atomic_fact", "atomic_fact_evaluator"])
+def atomic_fact(request):
+    return pytest.importorskip(f"antomnievo.evaluator.rag.{request.param}")
 
 
 @pytest.mark.parametrize(
@@ -21,19 +24,19 @@ atomic_fact = pytest.importorskip("antomnievo.evaluator.rag.atomic_fact_evaluato
         ("Wrong fact. <judgement>INCORRECT</judgement>", 0.0),
     ],
 )
-def test_short_verdict_requires_an_explicit_judgement(content, score):
+def test_short_verdict_requires_an_explicit_judgement(atomic_fact, content, score):
     metric = atomic_fact.AtomicFact(llm=Mock())
     assert metric._parse_verdict(content).score == score
 
 
-def test_binary_verdicts_are_not_scored_by_string_truthiness():
+def test_binary_verdicts_are_not_scored_by_string_truthiness(atomic_fact):
     metric = atomic_fact.AtomicFact(llm=Mock())
     verdicts = [{"verdict": value} for value in (0, "0", False, "unknown", 2, 1, "1", True)]
     assert metric._calculate_average_precision(verdicts) == 3 / 8
 
 
 @pytest.mark.asyncio
-async def test_unknown_short_judgement_has_no_correctness_credit(monkeypatch):
+async def test_unknown_short_judgement_has_no_correctness_credit(atomic_fact, monkeypatch):
     judge = AsyncMock(return_value="Unable to evaluate this response.")
     monkeypatch.setattr(atomic_fact, "areq_llm", judge)
     metric = atomic_fact.AtomicFact(llm=Mock())
@@ -43,7 +46,7 @@ async def test_unknown_short_judgement_has_no_correctness_credit(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_long_answer_uses_binary_verdict_values(monkeypatch):
+async def test_long_answer_uses_binary_verdict_values(atomic_fact, monkeypatch):
     monkeypatch.setattr(
         atomic_fact,
         "areq_llm",
