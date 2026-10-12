@@ -7,7 +7,9 @@ Covers:
   ``trajectory.errors``;
 - the pi parser flags a session that ends on an error even if it produced
   output earlier, and tolerates errors it recovered from;
-- Phase 2 rejects an aborted session that already edited files.
+- Phase 2 rejects an aborted session that already edited files;
+- Claude Code sessions that end on empty assistant messages (clean exit, no
+  error text) are flagged too, so their half-finished edits are not rolled out.
 """
 
 import asyncio
@@ -28,6 +30,7 @@ from antomnievo.interface.evaluator import Evaluator
 from antomnievo.model.trajectory import Span, Trajectory
 from antomnievo.model.tunable_artifact_schema import FileSchema, FolderSchema
 from antomnievo.model.usage_stats import UsageStats
+from antomnievo.proposer import claude_code_proposer as claude_code_proposer_mod
 from antomnievo.proposer.claude_code_proposer import ClaudeCodeProposer
 from antomnievo.proposer.utils.claude_code_utils import ClaudeCodeConfig, invoke_claude_code
 from antomnievo.proposer.utils.pi_coding_agent_utils import (
@@ -309,3 +312,103 @@ class TestMutationRejectsAbortedSession:
             assert not result.success
             assert "Agent session failed" in result.error_message
             assert "error_max_turns" in result.error_message
+
+
+def _claude_degenerate_events(trailing_empty: int = 3) -> str:
+    """A productive turn that edits the artifact, then ``trailing_empty`` empty
+    assistant messages and a clean ``success`` result — the shape observed when
+    the gateway returns empty assistant messages and the CLI exits 0."""
+    events = [
+        {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": "t1", "name": "Edit", "input": {"file_path": "SKILL.md"}},
+        ]}},
+        {"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": "t1", "content": "edited"},
+        ]}},
+    ]
+    events += [{"type": "assistant", "message": {"content": []}} for _ in range(trailing_empty)]
+    events.append({
+        "type": "result", "subtype": "success", "is_error": False, "result": "",
+        "usage": {"input_tokens": 5000, "output_tokens": 0},
+    })
+    return "\n".join(json.dumps(e) for e in events)
+
+
+class TestClaudeDegenerateSession:
+    """find_degenerate_ending is backend-agnostic (it reads span shape), but only
+    the pi proposer called it — a clean-exit Claude session that produced nothing
+    looked successful and its half-finished edits were rolled out."""
+
+    def _proposer(self, tmpdir):
+        store = LocalCandidateStore(os.path.join(tmpdir, "ws"))
+        evaluator = MagicMock(spec=Evaluator)
+        evaluator.scoring_criteria.return_value = "criteria"
+        proposer = ClaudeCodeProposer(
+            tunable_artifact_schema=FolderSchema(
+                name="artifact", description="d", files=[FileSchema(name="SKILL.md", description="d")],
+            ),
+            candidate_store=store, evaluator=evaluator, claude_code_path="echo", api_key=None,
+        )
+        root = store.create_root()
+        with open(os.path.join(root.artifact_dir, "SKILL.md"), "w") as f:
+            f.write("v1")
+        return proposer, root, store.create_child(root.candidate_id)
+
+    @staticmethod
+    def _stub_cli(monkeypatch, raw):
+        """Replace the subprocess call, not invoke_agent — the real
+        invoke_agent must run for this to test anything."""
+        async def fake_invoke(prompt, cwd, config):
+            return raw
+        monkeypatch.setattr(claude_code_proposer_mod, "invoke_claude_code", fake_invoke)
+
+    def test_degenerate_clean_exit_lands_in_trajectory_errors(self, tmp_path, monkeypatch):
+        proposer, _root, child = self._proposer(str(tmp_path))
+        self._stub_cli(monkeypatch, _claude_degenerate_events())
+        trajectory, _ = asyncio.run(proposer.invoke_agent("p", child.artifact_dir))
+        assert len(trajectory.errors) == 1
+        assert "degenerate" in trajectory.errors[0]
+        assert "empty model responses" in trajectory.errors[0]
+
+    def test_degenerate_session_with_edits_fails_phase_2(self, tmp_path, monkeypatch):
+        """The regression this guards: a half-finished edit must not become a candidate."""
+        proposer, root, child = self._proposer(str(tmp_path))
+
+        async def fake_invoke(prompt, cwd, config):
+            # The half-finished edit actually lands on disk, as a real agent leaves it.
+            with open(os.path.join(cwd, "SKILL.md"), "w") as f:
+                f.write("half-finished edit")
+            return _claude_degenerate_events()
+
+        monkeypatch.setattr(claude_code_proposer_mod, "invoke_claude_code", fake_invoke)
+        result = asyncio.run(proposer._run_mutation_pipeline(
+            root.candidate_id, child.candidate_id, prompt="p", phase_label="Propose",
+        ))
+        assert not result.success
+        assert "Agent session failed" in result.error_message
+        assert "degenerate" in result.error_message
+
+    def test_productive_session_is_untouched(self, tmp_path, monkeypatch):
+        """A session that ends with real text output must not be flagged."""
+        proposer, _root, child = self._proposer(str(tmp_path))
+        self._stub_cli(monkeypatch, _claude_events(
+            {"type": "result", "subtype": "success", "is_error": False, "result": "Done"}))
+        trajectory, _ = asyncio.run(proposer.invoke_agent("p", child.artifact_dir))
+        assert trajectory.errors == []
+
+    def test_single_trailing_empty_span_is_tolerated(self, tmp_path, monkeypatch):
+        """One content-free message right after the last tool call is harmless."""
+        proposer, _root, child = self._proposer(str(tmp_path))
+        self._stub_cli(monkeypatch, _claude_degenerate_events(trailing_empty=1))
+        trajectory, _ = asyncio.run(proposer.invoke_agent("p", child.artifact_dir))
+        assert trajectory.errors == []
+
+    def test_real_error_still_wins_over_degenerate_check(self, tmp_path, monkeypatch):
+        """An explicit error result is reported as-is; the degenerate check is a fallback."""
+        proposer, _root, child = self._proposer(str(tmp_path))
+        self._stub_cli(monkeypatch, _claude_events({
+            "type": "result", "subtype": "error_max_turns", "is_error": True, "result": ""}))
+        trajectory, _ = asyncio.run(proposer.invoke_agent("p", child.artifact_dir))
+        assert len(trajectory.errors) == 1
+        assert "error_max_turns" in trajectory.errors[0]
+
