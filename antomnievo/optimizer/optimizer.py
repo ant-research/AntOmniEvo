@@ -26,7 +26,6 @@ from antomnievo.model.budget import Budget, BudgetUsage
 from antomnievo.model.candidate_data import CandidateMeta, RunRecord
 from antomnievo.model.evaluation_result import EvaluationResult
 from antomnievo.model.system_result import SystemResult
-from antomnievo.model.usage_stats import UsageStats
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +222,14 @@ class Optimizer:
         self.statistics.current_system_runs += len(data_list)
         if split == "train":
             self.statistics.current_rollouts += len(data_list)
-        return await self._run_and_evaluate(candidate_id, data_list)
+        rollout = await self._run_and_evaluate(candidate_id, data_list)
+        # Account at the shared boundary so baseline and reflection evaluations
+        # are included, even if later work in the slot fails.
+        for result in rollout.results:
+            self.statistics.system_usage.add(result.usage)
+        for evaluation in rollout.evals:
+            self.statistics.eval_usage.add(evaluation.usage)
+        return rollout
 
     async def _run_and_evaluate(
         self, candidate_id: str, data_list: list[DataInst],
@@ -334,13 +340,13 @@ class Optimizer:
             return None
         duration = (datetime.now() - proposer_start).total_seconds()
 
+        if result.stats:
+            self.statistics.proposer_usage.add(result.stats)
+
         if not result.success:
             logger.warning(f"Proposer failed: {result.error_message}")
             self.candidate_store.retire(proposal_task.new_id)
             return None
-
-        if result.stats:
-            self.statistics.proposer_usage.add(result.stats)
 
         logger.info(f"Proposal completed for {proposal_task.new_id} in {duration:.1f}s")
         return ProposalOutcome(
@@ -474,7 +480,6 @@ class Optimizer:
         best_rollout = failed_child_rollout
         best_depth = 0
         prev_id = failed_child_id
-        cumulative_proposer_usage = UsageStats()
         # Every candidate in the chain whose lifecycle this method owns: v0 plus
         # every reflection-produced v_k. At exit, all of them except the accepted
         # best are retired.
@@ -506,7 +511,7 @@ class Optimizer:
                 logger.error(f"Reflection iter {depth}: proposer.reflect raised: {e}")
                 break
 
-            cumulative_proposer_usage.add(reflection_result.stats)
+            self.statistics.proposer_usage.add(reflection_result.stats)
 
             if not reflection_result.success:
                 logger.warning(
@@ -552,7 +557,6 @@ class Optimizer:
             if chain_accepted and cid == best_id:
                 continue
             self.candidate_store.retire(cid)
-        self.statistics.proposer_usage.add(cumulative_proposer_usage)
         if not chain_accepted:
             logger.info(
                 f"Reflection: no descendant beats original parent {original_parent_id} "
@@ -677,6 +681,10 @@ class Optimizer:
         slot_sem = asyncio.Semaphore(self.num_proposals)
         active_tasks: set[asyncio.Task] = set()
 
+        # TODO(scheduler): merge the three slot_sem.release() call sites in the
+        # loop below (budget exhausted / select raised / not picked) into a
+        # single release — every new early-exit branch currently has to
+        # remember to release, which is error-prone.
         while True:
             exhausted = self._budget_exhausted()
             if exhausted:
@@ -684,6 +692,17 @@ class Optimizer:
                 break
 
             await slot_sem.acquire()
+
+            # Re-check the budget after acquiring a slot. A running slot can
+            # exhaust the budget while this one waits on the semaphore, and the
+            # pre-acquire check alone would miss that and open new work anyway.
+            # Release the permit before breaking — in-flight slots drain after
+            # the loop, and a leaked permit would be pointless at that point.
+            exhausted = self._budget_exhausted()
+            if exhausted:
+                slot_sem.release()
+                logger.info(f"Budget exhausted ({exhausted}); draining {len(active_tasks)} in-flight slot(s)")
+                break
 
             try:
                 picked = self.ea.select(num=1)
@@ -777,7 +796,6 @@ class Optimizer:
                     new_rollout: RolloutEvalResult | None = None
                     accepted: AcceptedCandidate | None = None
                     val_avg: float | None = None
-                    val_rollout: RolloutEvalResult | None = None
                     challenge_duration_seconds = 0.0
 
                     if proposal_task is not None:
@@ -792,7 +810,7 @@ class Optimizer:
                         challenge_duration_seconds = time.time() - challenge_start
 
                     if accepted is not None:
-                        val_avg, val_rollout = await self._step_validate(accepted)
+                        val_avg, _ = await self._step_validate(accepted)
                         self.candidate_store.set_state(accepted.new_id, "pending")
 
                     # Parent always advances (it consumed this batch). Accepted children
@@ -809,18 +827,6 @@ class Optimizer:
                     # it's already atomic across concurrent slots — no lock needed. (If
                     # `eliminate` ever grows an `await`, reintroduce serialization here.)
                     self.ea.eliminate()
-
-                    # Accumulate system/eval usage (proposer usage already accumulated upstream).
-                    all_rollouts: list[RolloutEvalResult] = [old_rollout]
-                    if new_rollout is not None:
-                        all_rollouts.append(new_rollout)
-                    if val_rollout is not None:
-                        all_rollouts.append(val_rollout)
-                    for rollout in all_rollouts:
-                        for sr in rollout.results:
-                            self.statistics.system_usage.add(sr.usage)
-                        for er in rollout.evals:
-                            self.statistics.eval_usage.add(er.usage)
 
                     record = build_iteration_record(
                         parent_id=parent_id,
