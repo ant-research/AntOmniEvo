@@ -681,6 +681,10 @@ class Optimizer:
         slot_sem = asyncio.Semaphore(self.num_proposals)
         active_tasks: set[asyncio.Task] = set()
 
+        # TODO(scheduler): merge the three slot_sem.release() call sites in the
+        # loop below (budget exhausted / select raised / not picked) into a
+        # single release — every new early-exit branch currently has to
+        # remember to release, which is error-prone.
         while True:
             exhausted = self._budget_exhausted()
             if exhausted:
@@ -689,7 +693,11 @@ class Optimizer:
 
             await slot_sem.acquire()
 
-            # A running slot can exhaust the budget while this one waits.
+            # Re-check the budget after acquiring a slot. A running slot can
+            # exhaust the budget while this one waits on the semaphore, and the
+            # pre-acquire check alone would miss that and open new work anyway.
+            # Release the permit before breaking — in-flight slots drain after
+            # the loop, and a leaked permit would be pointless at that point.
             exhausted = self._budget_exhausted()
             if exhausted:
                 slot_sem.release()
