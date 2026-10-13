@@ -73,3 +73,7 @@ if __name__ == "__main__":
 ```
 
 The `example/` scripts each depend on their own external runtime and dataset (e.g. the separate `terminalbench2`, `appworld`, `birdtest` codebases) and **are not runnable out of the box** — they're for learning the structure, not reproducing an environment; ignore their hardcoded paths.
+
+## Agent-driven setup (optional)
+
+A setup path we've validated in practice: instead of hand-wiring the entry point yourself, let an agent drive it. See [`skills/`](../skills) — per-scenario [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills) where an agent interviews you for the few facts only you know, then sets up and smoke-tests the experiment itself, with that scenario's known pitfalls distilled in. The shipped skill, `eddy-antomnievo-experiment`, is purpose-built for the **eddy** agent runtime and is **not directly usable for other systems** — treat it as a worked example for distilling a skill for your own scenario. See [`skills/README.md`](../skills/README.md).
