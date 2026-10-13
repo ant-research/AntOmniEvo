@@ -73,3 +73,7 @@ if __name__ == "__main__":
 ```
 
 `example/` 里的脚本各自依赖外部运行时和数据集(如 `terminalbench2`、`appworld`、`birdtest` 等另外的代码仓),**开箱不能直接跑**;它们用来学结构,不是复刻环境,忽略其中硬编码路径即可。
+
+## 让 agent 来搭建(可选)
+
+这是我们实践验证过的搭建路径:不用自己手动接线,让 agent 来 drive。见 [`skills/`](../skills) —— 按场景组织的 [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills):agent 主动问你只有你知道的几个事实,然后自己完成实验搭建与冒烟,该场景踩过的坑已沉淀其中。当前自带的 `eddy-antomnievo-experiment` 是为 **eddy** agent 运行时定制的,**不能直接用于其他系统** —— 把它当作一个完整范例,照它为你自己的场景蒸馏一个 skill。详见 [`skills/README.md`](../skills/README.md)。
