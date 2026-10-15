@@ -191,7 +191,7 @@ generate 跑一个 (运行期 + 候选可调产物) 组合 —— AntOmniEvo 的
 - 业务项目自己的 venv 是否就绪(有 `.venv`、运行依赖装齐——eddy/antmcp 等:`uv pip install -r <业务项目>/requirements.txt --index-strategy unsafe-best-match`,装完别再 `uv sync`)。
 - 用业务项目的 venv 验证步骤 3.1 确认的 agent 入口能 import:`<业务项目>/.venv/bin/python -c "from <确认的入口 module> import <attr>"` 不报错;`import <步骤 3.1 确认的包名>` 能定位到该项目的版本(非别处)。
 - agent 在 **import 时**就会 `build()` 模型 / 构造 MCP,**必须先有 model key(如 `THETA_API_KEY`)**+ 本地跑开关(`LOCAL_WORKSPACE=1` 跳过 ARCA)等;没有或不确定 → 先跟用户要/确认。
-- **先判断 agent 用不用 MCP,再决定要不要 token 那套** —— 有的 agent 不用 MCP,别给不用 MCP 的用户也搞这一套。判断法:grep agent 包里的 MCP 用法(MCP module / antmcp / MCP client 工具;步骤 3 扫 module 时顺手确认)。**确认用 MCP 才需要**:MCP 身份 token(如 `IAM_TOKEN`)+ 账号 MCP 权限;蚂蚁内部拿 IAM token 的标准方法 = 内网授权页(`login-intranet.alipay.com/pub/oauth/AppAuthorize.htm?...`,页面粘贴 `mcpnexus.alipay.com` 认证后拿 token;项目脚本常内置 `--prompt-iam-token` 流程,优先让用户走它)—— 详见 `references/generate-evaluate-recipe.md` 坑节;**token 拿到先解码验签名段 + exp,注意聊天粘贴可能截断**。不用 MCP → 只要 model key,跳过这套。
+- **先判断 agent 用不用 MCP,再决定要不要 token 那套** —— 有的 agent 不用 MCP,别给不用 MCP 的用户也搞这一套。判断法:grep agent 包里的 MCP 用法(MCP module / antmcp / MCP client 工具;步骤 3 扫 module 时顺手确认)。**确认用 MCP 才需要**:MCP 身份 token(如 `IAM_TOKEN`)+ 账号 MCP 权限;蚂蚁内部拿 IAM token 的标准方法 = 内网授权页(`<your-intranet-sso-host>/pub/oauth/AppAuthorize.htm?...`,页面粘贴 `<your-mcp-server-host>` 认证后拿 token;项目脚本常内置 `--prompt-iam-token` 流程,优先让用户走它)—— 详见 `references/generate-evaluate-recipe.md` 坑节;**token 拿到先解码验签名段 + exp,注意聊天粘贴可能截断**。不用 MCP → 只要 model key,跳过这套。
 - (generate.py 的 dep 自动安装能补装扫描到的缺失第三方包,但**基础运行依赖**得先在业务 venv 装齐;AntOmniEvo 的 venv 不重复装这些。)
 - → [同步] 把「业务 venv 能 import + key / 开关就绪」告诉用户;写 `<exp_root>/NOTES.md`(步骤 5:venv 路径/deps/key 状态);告知完成步骤 5、只剩步骤 6(最后冒烟 + 最终确认);问「是否继续」,继续后进步骤 6。
 

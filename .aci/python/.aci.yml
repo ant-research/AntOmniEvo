@@ -16,10 +16,10 @@ jobs:
     id: build
     component: pypi-artifact-uploader
     inputs:
-      registry: "https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/"  # pre-prod
+      registry: "https://<your-artifact-registry>/artifact/repositories/simple-dev/"  # pre-prod
       buildCmd: |
         BUILD_OUTPUT_DIR="${ACB_BUILD_DIR}/code-repo/dist"
-        export PIP_INDEX_URL='https://pypi.antfin-inc.com/simple/'
+        export PIP_INDEX_URL='https://<your-internal-pypi>/simple/'
         cd ${ACB_BUILD_DIR}/code-repo
         python -m build --outdir=$BUILD_OUTPUT_DIR
 
@@ -28,10 +28,10 @@ jobs:
     id: build-visualizer
     component: pypi-artifact-uploader
     inputs:
-      registry: "https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/"  # pre-prod
+      registry: "https://<your-artifact-registry>/artifact/repositories/simple-dev/"  # pre-prod
       buildCmd: |
         BUILD_OUTPUT_DIR="${ACB_BUILD_DIR}/code-repo/dist"
-        export PIP_INDEX_URL='https://pypi.antfin-inc.com/simple/'
+        export PIP_INDEX_URL='https://<your-internal-pypi>/simple/'
         cd ${ACB_BUILD_DIR}/code-repo/visualizer
         python -m build --outdir=$BUILD_OUTPUT_DIR
 
@@ -66,8 +66,7 @@ jobs:
         confirm:
           buttonName: Confirm Publish ant-omnievo to Prod Repo
           approvers:  # release-role domain accounts
-            - lyuyubin.lyb
-            - hanpu.mwx
+            - "<fill-in-approver>"
 
   sync-visualizer-to-prod:
     stage: Publish to Prod Repo
@@ -80,5 +79,4 @@ jobs:
         confirm:
           buttonName: Confirm Publish ant-omnievo-visualizer to Prod Repo
           approvers:  # release-role domain accounts (separate per-package role)
-            - lyuyubin.lyb
-            - hanpu.mwx
+            - "<fill-in-approver>"

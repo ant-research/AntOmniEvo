@@ -63,7 +63,7 @@ class ClaudeCodeProposer(BaseProposer):
         max_turns: int = 150,
         timeout: int = 3600,
         api_key: str | None = None,
-        base_url: str = 'https://antchat.alipay.com/api/anthropic',
+        base_url: str = 'https://api.anthropic.com',
         concurrency: int = 2,
         max_context_tokens: int | None = None,
         autocompact_pct: int | None = None,
