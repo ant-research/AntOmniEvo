@@ -37,7 +37,7 @@ pgrep -af "<entry script pattern>"
 
 ## 4. 蚂蚁内部 MCP credential 过期 → 主动诊断 + 引导用户换 token
 
-章节前提:蚂蚁内部 MCP(adconfig MCP / mcpnexus.alipay.com)的 JWT token 有效期 24h,过期后 agent 拿不到 MCP 资源 → batch score 从高跌到低。此章节含两步:主动诊断 + 引导用户去签发新 token。
+章节前提:蚂蚁内部 MCP(adconfig MCP / <your-mcp-server-host>)的 JWT token 有效期 24h,过期后 agent 拿不到 MCP 资源 → batch score 从高跌到低。此章节含两步:主动诊断 + 引导用户去签发新 token。
 
 ### 4.1 什么时候怀疑 MCP credential 过期
 
@@ -50,8 +50,8 @@ pgrep -af "<entry script pattern>"
 
 ### 4.2 蚂蚁内部 MCP token 换取(用户操作步骤)
 
-1. 打开签发页: `https://login-intranet.alipay.com/pub/oauth/AppAuthorize.htm?token=2026082836a1c7f210bd48de9afba03a4ffb` (token 参数可能更新; 问用户最新的 URL)
-2. 在页面输入栏输入 MCP server host: `mcpnexus.alipay.com`
+1. 打开签发页: `https://<your-intranet-sso-host>/pub/oauth/AppAuthorize.htm?token=<app-token>` (token 参数可能更新; 问用户最新的 URL)
+2. 在页面输入栏输入 MCP server host: `<your-mcp-server-host>`
 3. 页面签发 JWT 身份凭证 = 你的 `system.iam_token` 值
 4. 把签发的 token **原值**贴给执行者(不要手敲 → silent corruption;copy-paste)
 5. 执行者用 python 精确更新 config YAML + `.env.local` + 重物化 `<run_dir>/run.env`:

@@ -211,7 +211,7 @@ class TerminalBenchSystem(System):
         api_key: str,
         concurrency: int = 1,
         attempts: int = 1,
-        base_url: str = "https://antchat.alipay.com/api/anthropic",
+        base_url: str = "https://api.anthropic.com",
         model: str | None = None,
         provider: str | None = "anthropic",
         job_config_yaml: str | None = None,

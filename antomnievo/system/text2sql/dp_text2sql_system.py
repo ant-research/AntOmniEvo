@@ -306,7 +306,7 @@ class DPText2SQLSystem(System):
         run_sh_path: str,
         api_key: str,
         concurrency: int = 1,
-        base_url: str = "https://antchat.alipay.com/api/anthropic",
+        base_url: str = "https://api.anthropic.com",
         model: str = "kimi-k2.5",
     ):
         """Initialize DPText2SQLSystem.

@@ -18,11 +18,11 @@ each `pyproject.toml` — bump per release.
 
 | Library | Where |
 |---|---|
-| Test (pre-prod) | `https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/` |
+| Test (pre-prod) | `https://<your-artifact-registry>/artifact/repositories/simple-dev/` |
 | Production | `antArtifactRepo: simple` |
-| Build deps | `https://pypi.antfin-inc.com/simple/` (`PIP_INDEX_URL`) |
+| Build deps | `https://<your-internal-pypi>/simple/` (`PIP_INDEX_URL`) |
 
-Test-install: `pip install -i https://artifacts.antgroup-inc.cn/artifact/repositories/simple-dev/ <ant-omnievo | ant-omnievo-visualizer>`
+Test-install: `pip install -i https://<your-artifact-registry>/artifact/repositories/simple-dev/ <ant-omnievo | ant-omnievo-visualizer>`
 
 ## Pipeline (per package)
 
@@ -33,7 +33,7 @@ Test-install: `pip install -i https://artifacts.antgroup-inc.cn/artifact/reposit
 
 ## Before first release
 
-1. **Approvers** — `lyuyubin.lyb` + `hanpu.mwx` in each `sync-*-to-prod...confirm.approvers`. Per-package: these accounts need the **per-package** formal-library publish role on the platform; the `ant-omnievo` role does not cover `ant-omnievo-visualizer`.
+1. **Approvers** — fill in the publish approvers in each `sync-*-to-prod...confirm.approvers`. Per-package: these accounts need the **per-package** formal-library publish role on the platform; the `ant-omnievo` role does not cover `ant-omnievo-visualizer`.
 2. **Version** — bump `version` in each `pyproject.toml` per release.
 
 ## README after install

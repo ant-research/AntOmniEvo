@@ -255,7 +255,7 @@ agent 用 eddy MCP server 时光有 model key 不够 —— MCP 还要两层放�
 2. **账号有该 MCP 权限**:身份认出后,账号还得有每个要用的 MCP server 的权限 → 否则 `403 NO_PERMISSION` 类。
 - 两者都在 **agent invoke 启动后几秒内**出现在日志(连 MCP → list_tools 那几行)。冒烟前跟用户确认:身份 token 有效 + 账号已申请并拿到每个要用的 MCP server 权限;缺就让用户先申请,别反复盲跑。
 - generate.py 默认关**客户端侧** MCP 安全切面(secaspect),但 **server 侧 gateway 照样查身份+权限** —— 关客户端切面绕不过 server 门。
-- **蚂蚁内部拿 MCP IAM token 的方法(用户授过权的标准做法)**:浏览器打开内网授权页 `https://login-intranet.alipay.com/pub/oauth/AppAuthorize.htm?token=<app-token>`(授权页 URL,token 参数是应用授权标识,过期/失效就让用户给新的),页面里**粘贴 `mcpnexus.alipay.com`** 作为目标,完成认证(刷脸)后拿到 IAM token。很多 eddy 项目脚本已内置该流程(如 `--open-iam-token-page` 打开授权页 / `--prompt-iam-token` 打开+等待粘贴+自动写 `.env.local`,target 常量就是 `mcpnexus.alipay.com`)—— **优先让用户走项目自带流程**,没有就把授权页 URL 给用户。⚠ token 是长 JWT,**聊天粘贴通道可能截断**(实测:三次粘贴都恰好停在同一总长 → 截断在源头);拿到后**先解码验 3 段 + 签名段长度 + `exp` 剩余时间**,有问题让用户走"写文件/终端粘贴"通道,别拿截断 token 反复盲跑。
+- **蚂蚁内部拿 MCP IAM token 的方法(用户授过权的标准做法)**:浏览器打开内网授权页 `https://<your-intranet-sso-host>/pub/oauth/AppAuthorize.htm?token=<app-token>`(授权页 URL,token 参数是应用授权标识,过期/失效就让用户给新的),页面里**粘贴 `<your-mcp-server-host>`** 作为目标,完成认证(刷脸)后拿到 IAM token。很多 eddy 项目脚本已内置该流程(如 `--open-iam-token-page` 打开授权页 / `--prompt-iam-token` 打开+等待粘贴+自动写 `.env.local`,target 常量就是 `<your-mcp-server-host>`)—— **优先让用户走项目自带流程**,没有就把授权页 URL 给用户。⚠ token 是长 JWT,**聊天粘贴通道可能截断**(实测:三次粘贴都恰好停在同一总长 → 截断在源头);拿到后**先解码验 3 段 + 签名段长度 + `exp` 剩余时间**,有问题让用户走"写文件/终端粘贴"通道,别拿截断 token 反复盲跑。
 
 ### eddy agent 的"两套 MCP 面"(别把 allowlist skip 当 bug)
 eddy agent 常把 MCP 暴露成两套:
