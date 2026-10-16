@@ -18,7 +18,7 @@ import os
 import stat
 import tempfile
 import time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -205,6 +205,105 @@ class TestTimeoutKillsProcessTree:
         exc = AgentTimeoutError("Pi Coding Agent timed out after 3600s")
         assert isinstance(exc, asyncio.TimeoutError)
         assert not is_retryable_agent_error(exc)
+
+
+class TestCancellationKillsProcessTree:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("reap_times_out", [False, True])
+    async def test_cancellation_kills_and_reaps_then_propagates(self, monkeypatch, reap_times_out):
+        started = asyncio.Event()
+        proc = _StubProcess()
+
+        async def communicate():
+            started.set()
+            await asyncio.Event().wait()
+
+        async def wait():
+            if reap_times_out:
+                await asyncio.Event().wait()
+            return -9
+
+        proc.communicate = communicate
+        proc.wait = AsyncMock(side_effect=wait)
+        kill = MagicMock(side_effect=lambda process: process.kill())
+        monkeypatch.setattr(subprocess_utils, "kill_process_tree", kill)
+        monkeypatch.setattr(subprocess_utils, "_REAP_GRACE_SECONDS", _TIMEOUT_S)
+
+        task = asyncio.create_task(communicate_with_timeout(proc, 3600, "stub"))
+        await started.wait()
+        task.cancel("stop requested")
+
+        with pytest.raises(asyncio.CancelledError, match="stop requested"):
+            await task
+
+        kill.assert_called_once_with(proc)
+        proc.wait.assert_awaited_once_with()
+        assert proc.returncode == -9
+
+    @pytest.mark.asyncio
+    async def test_outer_timeout_cleans_up_without_becoming_agent_timeout(self, monkeypatch):
+        proc = _StubProcess()
+        proc.wait = AsyncMock(return_value=-9)
+        kill = MagicMock(side_effect=lambda process: process.kill())
+        monkeypatch.setattr(subprocess_utils, "kill_process_tree", kill)
+
+        with pytest.raises(asyncio.TimeoutError) as exc_info:
+            await asyncio.wait_for(communicate_with_timeout(proc, 3600, "stub"), _TIMEOUT_S)
+
+        assert not isinstance(exc_info.value, AgentTimeoutError)
+        kill.assert_called_once_with(proc)
+        proc.wait.assert_awaited_once_with()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("backend", ["claude", "pi"])
+    async def test_backend_cancellation_reaches_cleanup(self, monkeypatch, stub_subprocess, tmp_path, backend):
+        started = asyncio.Event()
+
+        async def communicate():
+            started.set()
+            await asyncio.Event().wait()
+
+        stub_subprocess.communicate = communicate
+        stub_subprocess.wait = AsyncMock(return_value=-9)
+        kill = MagicMock(side_effect=lambda process: process.kill())
+        monkeypatch.setattr(subprocess_utils, "kill_process_tree", kill)
+        if backend == "claude":
+            invocation = invoke_claude_code("prompt", str(tmp_path), ClaudeCodeConfig())
+        else:
+            invocation = invoke_pi_coding_agent("prompt", str(tmp_path), PiCodingAgentConfig())
+
+        task = asyncio.create_task(invocation)
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        kill.assert_called_once_with(stub_subprocess)
+        stub_subprocess.wait.assert_awaited_once_with()
+
+    @pytest.mark.slow
+    def test_cancellation_kills_real_agent_and_child(self, fake_agent):
+        script, pidfile, ready = fake_agent
+
+        async def run():
+            proc = await asyncio.create_subprocess_exec(
+                script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                await _wait_until_ready(ready, proc)
+                task = asyncio.create_task(communicate_with_timeout(proc, 3600, "fake agent"))
+                await asyncio.sleep(0)  # Let the helper start waiting before cancelling it.
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+                assert proc.returncode is not None
+            finally:
+                # Also clean up if the regression assertion fails.
+                kill_process_tree(proc)
+                await proc.wait()
+
+        asyncio.run(run())
+        _assert_all_dead(pidfile)
 
 
 def _claude_events(result_event: dict) -> str:
