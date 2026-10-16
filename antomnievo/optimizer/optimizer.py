@@ -263,7 +263,16 @@ class Optimizer:
         eval_result_list: list[EvaluationResult],
         split: str = "train",
     ) -> None:
-        for data_inst, system_result, eval_result in zip(data_inst_list, system_result_list, eval_result_list, strict=False):
+        # Check before iterating: strict zip alone can fail after writing a
+        # partial batch when a system or evaluator returns the wrong length.
+        if not (len(data_inst_list) == len(system_result_list) == len(eval_result_list)):
+            raise ValueError(
+                f"Run record batch lengths differ for candidate {candidate_id}: "
+                f"data_inst_list={len(data_inst_list)}, "
+                f"system_result_list={len(system_result_list)}, "
+                f"eval_result_list={len(eval_result_list)}"
+            )
+        for data_inst, system_result, eval_result in zip(data_inst_list, system_result_list, eval_result_list, strict=True):
             record = RunRecord(
                 candidate_id=candidate_id,
                 timestamp=datetime.now(),
