@@ -18,7 +18,7 @@ import os
 import stat
 import tempfile
 import time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -387,6 +387,24 @@ class TestClaudeDegenerateSession:
         assert not result.success
         assert "Agent session failed" in result.error_message
         assert "degenerate" in result.error_message
+
+    @pytest.mark.parametrize("subtype", ["success", "error_max_turns"])
+    def test_invokes_cli_once_and_preserves_result(self, tmp_path, monkeypatch, subtype):
+        proposer, _root, child = self._proposer(str(tmp_path))
+        raw = _claude_events({
+            "type": "result", "subtype": subtype, "is_error": subtype != "success", "result": "Done",
+            "usage": {"input_tokens": 100, "output_tokens": 20},
+        })
+        invoke = AsyncMock(return_value=raw)
+        monkeypatch.setattr(claude_code_proposer_mod, "invoke_claude_code", invoke)
+
+        trajectory, stats = asyncio.run(proposer.invoke_agent("p", child.artifact_dir))
+
+        invoke.assert_awaited_once_with("p", child.artifact_dir, proposer._config)
+        assert trajectory.root_span_list[-1].output == "Done"
+        assert bool(trajectory.errors) == (subtype != "success")
+        assert stats.input_tokens == 100
+        assert stats.output_tokens == 20
 
     def test_productive_session_is_untouched(self, tmp_path, monkeypatch):
         """A session that ends with real text output must not be flagged."""
