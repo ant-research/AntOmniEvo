@@ -75,10 +75,6 @@ If you find this work useful, please cite the relevant paper:
   }
   ```
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ant-research/AntOmniEvo&type=Date)](https://star-history.com/#ant-research/AntOmniEvo&Date)
-
 ## License
 
 Licensed under the [Apache License 2.0](./LICENSE). Legal disclaimer: see [`LEGAL.md`](./LEGAL.md).

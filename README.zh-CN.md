@@ -80,10 +80,6 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
   }
   ```
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ant-research/AntOmniEvo&type=Date)](https://star-history.com/#ant-research/AntOmniEvo&Date)
-
 ## 许可
 
 基于 [Apache License 2.0](./LICENSE) 开源。法律免责声明见 [`LEGAL.md`](./LEGAL.md)。
