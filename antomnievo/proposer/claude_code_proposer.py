@@ -145,8 +145,6 @@ class ClaudeCodeProposer(BaseProposer):
         # Remove the __init__ warning once this lands.
         async with self._sem:
             raw_output = await invoke_claude_code(prompt, cwd, self._config)
-        async with self._sem:
-            raw_output = await invoke_claude_code(prompt, cwd, self._config)
         trajectory, stats = parse_stream_json(raw_output)
         # Under gateway overload the model can return empty assistant messages;
         # the CLI retries internally and exits 0, so the result event still
