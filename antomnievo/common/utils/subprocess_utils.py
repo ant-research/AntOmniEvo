@@ -60,7 +60,7 @@ def kill_process_tree(process: asyncio.subprocess.Process) -> None:
 async def communicate_with_timeout(
     process: asyncio.subprocess.Process, timeout: float, label: str,
 ) -> tuple[bytes, bytes]:
-    """``process.communicate()`` bounded by ``timeout``; kills the process tree on expiry.
+    """Bound ``process.communicate()``; kill and reap on timeout or cancellation.
 
     ``asyncio.wait_for`` alone only cancels the *await* — the subprocess keeps
     running (and, for a coding agent, keeps consuming tokens and editing files
@@ -68,16 +68,22 @@ async def communicate_with_timeout(
 
     Raises:
         AgentTimeoutError: the process did not finish within ``timeout`` seconds.
+        asyncio.CancelledError: the caller cancelled the wait; propagated after cleanup.
     """
     try:
         return await asyncio.wait_for(process.communicate(), timeout=timeout)
-    except asyncio.TimeoutError:
-        logger.error(f"{label} exceeded its {timeout}s timeout; killing pid {process.pid} and its children")
+    except (asyncio.TimeoutError, asyncio.CancelledError) as exc:
+        if isinstance(exc, asyncio.CancelledError):
+            logger.info(f"{label} cancelled; killing pid {process.pid} and its children")
+        else:
+            logger.error(f"{label} exceeded its {timeout}s timeout; killing pid {process.pid} and its children")
         kill_process_tree(process)
         try:
             await asyncio.wait_for(process.wait(), timeout=_REAP_GRACE_SECONDS)
         except asyncio.TimeoutError:
             logger.warning(f"{label} pid {process.pid} did not exit within {_REAP_GRACE_SECONDS}s of SIGKILL")
+        if isinstance(exc, asyncio.CancelledError):
+            raise
         raise AgentTimeoutError(
             f"{label} timed out after {timeout}s; pid {process.pid} and its children were killed"
         ) from None
