@@ -1,12 +1,14 @@
 # AntOmniEvo Skills
 
+> **English** · [中文](./README.zh-CN.md)
+
 Per-scenario [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills)s for driving
 [AntOmniEvo](../antomnievo) optimization experiments. Each skill distills the best practices of one
 scenario into something an agent can run, so the next user skips the pitfalls that took the first
 person days to discover.
 
-**Language convention: this folder targets Ant Group internal users — skill content is written in
-Chinese (the internal preference); this README stays in English.**
+**Language convention: this folder targets Ant Group internal users — skill content (`SKILL.md`,
+`references/`) is written in Chinese (the internal preference); this README is bilingual.**
 
 ## Why this exists: agent-driven, not human-driven
 

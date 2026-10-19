@@ -33,7 +33,7 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
 | --- | --- |
 | `System` | 如何**运行**你的系统(单条评估样本) |
 | `Evaluator` | 如何给输出**打分**(0–1)—— 它的打分标准**就是**优化目标 |
-| 评估**数据** | 定义「好」的训练 / 验证样本 |
+| **数据** | 定义「好」的训练 / 验证样本 |
 | `TunableArtifactSchema` | 把系统的 tunable artifacts 映射成一个文件目录:文件树 + 每个文件的用途 |
 | **初始可调产物** | 起点 |
 
@@ -46,6 +46,10 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
 ## ✨ 快速开始
 
 见 [安装与快速开始](./docs/quickstart.zh-CN.md):安装、最小入口脚本、跑通第一次 `optimize()`。
+
+## 🤖 Skills
+
+[`skills/`](./skills) 沉淀了按场景划分的 [Agent Skill](https://agentskills.io):把它交给你的 coding agent,agent 会主动驱动整个实验 —— 先问你几个只有你知道的事实(repo、数据集、指标),然后自己选组件、写入口脚本、启动运行,并照着内置的踩坑记录排查失败。目前内置 `eddy-antomnievo-experiment`(面向 eddy high-code agent runtime);可以照它做模板,把自己场景趟出来的经验沉淀成新的 skill。
 
 ## 📚 文档
 
@@ -79,10 +83,6 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
         url={https://arxiv.org/abs/2609.35855},
   }
   ```
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ant-research/AntOmniEvo&type=Date)](https://star-history.com/#ant-research/AntOmniEvo&Date)
 
 ## 许可
 

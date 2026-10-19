@@ -32,7 +32,7 @@ It works for any system that can be expressed as a directory of tunable files an
 | --- | --- |
 | `System` | how to **run** your system on one eval instance |
 | `Evaluator` | how to **score** its output (0–1) — its scoring criteria *is* the optimization objective |
-| eval **data** | the train/val instances that define "good" |
+| **data** | the train/val instances that define "good" |
 | `TunableArtifactSchema` | maps your system's tunable artifacts onto a directory: the file tree + what each file is for |
 | **initial tunable artifacts** | the starting point |
 
@@ -41,6 +41,10 @@ It works for any system that can be expressed as a directory of tunable files an
 **The AI works** — the changing itself is done by a coding-agent `Proposer`: it reads failure trajectories, locates which file to edit, and lands a structured change as a new candidate's tunable artifacts — the way a human would edit code.
 
 **It delivers** — the best candidate's **tunable artifacts**: a real directory of files you can diff, review, and deploy, with a change lineage attributing every edit to the failure evidence that motivated it.
+
+## 🤖 Skills
+
+[`skills/`](./skills) ships per-scenario [Agent Skills](https://agentskills.io): hand one to your coding agent and it drives the experiment setup for you — interviews you for the few facts only you know (repo, dataset, metric), then picks components, writes the entry script, launches the run, and triages failures against its built-in pitfall log. It currently contains `eddy-antomnievo-experiment` (for the eddy high-code agent runtime; content in Chinese) — follow it as a template to distill your own scenario's best practices into a skill of your own.
 
 ## 📚 Documentation
 
@@ -74,10 +78,6 @@ If you find this work useful, please cite the relevant paper:
         url={https://arxiv.org/abs/2609.35855},
   }
   ```
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ant-research/AntOmniEvo&type=Date)](https://star-history.com/#ant-research/AntOmniEvo&Date)
 
 ## License
 
