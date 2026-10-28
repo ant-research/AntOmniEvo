@@ -59,6 +59,10 @@ It works for any system that can be expressed as a directory of tunable files an
 | Checkpoint resume & crash recovery | [docs/checkpoint-resume.md](./docs/checkpoint-resume.md) | [docs/checkpoint-resume.zh-CN.md](./docs/checkpoint-resume.zh-CN.md) |
 | Visualizer | [docs/visualizer.md](./docs/visualizer.md) | [docs/visualizer.zh-CN.md](./docs/visualizer.zh-CN.md) |
 
+## 🧪 Paper Resources
+
+The paper's experiment scripts, artifacts before and after evolution, and datasets are being prepared for open source and will be released in a separate repository — stay tuned.
+
 <a id="papers"></a>
 
 ## 📄 Papers

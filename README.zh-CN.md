@@ -64,6 +64,10 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
 | 断点续跑与崩溃恢复 | [docs/checkpoint-resume.zh-CN.md](./docs/checkpoint-resume.zh-CN.md) | [docs/checkpoint-resume.md](./docs/checkpoint-resume.md) |
 | 可视化器 | [docs/visualizer.zh-CN.md](./docs/visualizer.zh-CN.md) | [docs/visualizer.md](./docs/visualizer.md) |
 
+## 🧪 论文资源
+
+论文的实验脚本、进化前后的 artifacts、数据集等正在筹备开源,后续会发布到单独的仓库,敬请期待。
+
 <a id="papers"></a>
 
 ## 📄 Papers
