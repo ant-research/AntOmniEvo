@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Candidate, IterationRecord } from '../../../types';
 import { getBatchScores, getCandidateDetail } from '../../../utils/api';
 import { FileViewer } from '../FileViewer';
+import { useTranslation } from '../../../i18n';
 
 interface LineageCompareProps {
   candidates: Candidate[];
@@ -153,6 +154,7 @@ function buildChains(candidates: Candidate[]): ChainInfo[] {
 const DEFAULT_SHOW = 10;
 
 export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSelectCandidate, iterationRecords }) => {
+  const { t } = useTranslation();
   const iterByCandidate = useMemo(() => {
     const m = new Map<string, IterationRecord>();
     for (const r of iterationRecords ?? []) {
@@ -332,7 +334,7 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
       if (files.length > 0) {
         setViewingFile(files[files.length - 1]);
       } else {
-        setContextContent(`No system run file found for candidate ${candidateId.slice(0, 8)} on data ${dataId}.`);
+        setContextContent(t('coverage.noRunFile', { id: candidateId.slice(0, 8), dataId }));
         setContextTitle(`${candidateId.slice(0, 8)} · ${dataId}`);
       }
     } catch (e) {
@@ -340,7 +342,7 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
     } finally {
       setLoadingCell(null);
     }
-  }, []);
+  }, [t]);
 
   const handleViewContext = useCallback(async (candidateId: string, dataId: string) => {
     const cellKey = `${candidateId}:${dataId}`;
@@ -403,30 +405,30 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
     <div className="mc-container">
       {/* Summary */}
       <div className="mc-summary">
-        <span className="mc-stat">{stats.total} candidates</span>
+        <span className="mc-stat">{stats.total} {t('mara.candidates')}</span>
         <span className="qm-summary-sep">·</span>
-        <span className="mc-stat">{stats.reflectionCount} with reflection</span>
+        <span className="mc-stat">{stats.reflectionCount} {t('mara.withReflection')}</span>
         <span className="qm-summary-sep">·</span>
-        <span className="mc-stat">{stats.improved} improved</span>
+        <span className="mc-stat">{stats.improved} {t('mara.improved')}</span>
         <span className="qm-summary-sep">·</span>
-        <span className="mc-stat">avg reflection gain {stats.avgImprove.toFixed(2)}</span>
+        <span className="mc-stat">{t('mara.avgGain')} {stats.avgImprove.toFixed(2)}</span>
       </div>
 
       {/* Search */}
       <div className="lc-controls">
         <div className="lc-field" style={{ flex: 1 }}>
-          <label className="lc-label">Search by candidate ID</label>
+          <label className="lc-label">{t('mara.searchLabel')}</label>
           <input
             className="lc-input mono"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Type candidate ID to filter..."
+            placeholder={t('mara.searchPlaceholder')}
           />
         </div>
       </div>
 
       {filteredChains.length === 0 && (
-        <div className="lc-empty">No candidates match &quot;{searchQuery}&quot;</div>
+        <div className="lc-empty">{t('mara.noMatch', { q: searchQuery })}</div>
       )}
 
       {/* Chain list */}
@@ -501,7 +503,7 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
                 <div className="mc-detail">
                   {/* Generation controls */}
                   <div className="mc-gen-controls">
-                    <span className="mc-gen-label">Generations: {allNodes.length}</span>
+                    <span className="mc-gen-label">{t('mara.generations', { n: allNodes.length })}</span>
                     {(expandedGenerations.get(idx) ?? []).length > 0 && (
                       <button className="mc-gen-btn" onClick={() => handleShrinkGenerations(idx)}>−</button>
                     )}
@@ -513,16 +515,16 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
                   {/* Reflection stats */}
                   {rs && (
                     <div className="mc-iter-info">
-                      <span>Common: {rs.commonCount} IDs</span>
+                      <span>{t('mara.commonIds', { n: rs.commonCount })}</span>
                       <span className="qm-summary-sep">·</span>
-                      <span>Parent: {rs.parentSum.toFixed(1)}</span>
+                      <span>{t('mara.parent', { v: rs.parentSum.toFixed(1) })}</span>
                       <span className="qm-summary-sep">·</span>
                       <span>Δ1(d0−parent): {rs.delta1 > 0 ? '+' : ''}{rs.delta1.toFixed(2)}</span>
                       <span className="qm-summary-sep">·</span>
                       <span>Δ2(max−parent): {rs.delta2 > 0 ? '+' : ''}{rs.delta2.toFixed(2)}</span>
                       <span className="qm-summary-sep">·</span>
                       <span className={rs.reflectionValue > 0 ? 'mc-accepted' : rs.reflectionValue < 0 ? 'mc-rejected' : ''}>
-                        Reflection gain: {rs.reflectionValue > 0 ? '+' : ''}{rs.reflectionValue.toFixed(2)}
+                        {t('mara.reflectionGain', { v: `${rs.reflectionValue > 0 ? '+' : ''}${rs.reflectionValue.toFixed(2)}` })}
                       </span>
                     </div>
                   )}
@@ -534,25 +536,25 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
                     return (
                       <div className="mc-iter-info">
                         <span
-                          title={`proposer ${fmtDuration(leafIter.proposer_duration_seconds)} / total ${fmtDuration(leafIter.duration_seconds)}`}
+                          title={t('mara.iterTitle', { p: fmtDuration(leafIter.proposer_duration_seconds), t: fmtDuration(leafIter.duration_seconds) })}
                         >
-                          iteration <strong>{leafIter.iteration}</strong>
+                          {t('mara.iteration')} <strong>{leafIter.iteration}</strong>
                           <span className="qm-summary-sep">·</span>
-                          cost <strong>{fmtDuration(leafIter.duration_seconds)}</strong>
+                          {t('mara.cost')} <strong>{fmtDuration(leafIter.duration_seconds)}</strong>
                         </span>
                       </div>
                     );
                   })()}
 
                   {/* Batch score comparison table */}
-                  {isLoading && <div className="lc-empty">Loading batch scores...</div>}
+                  {isLoading && <div className="lc-empty">{t('mara.loadingBatch')}</div>}
 
                   {!isLoading && dataIds.length > 0 && (
                     <div className="lc-scroll" style={{ maxHeight: '400px' }}>
                       <table className="qm-table">
                         <thead>
                           <tr>
-                            <th className="qm-th-question">Data ID</th>
+                            <th className="qm-th-question">{t('common.dataId')}</th>
                             {allNodes.map(node => (
                               <th key={node.meta.candidate_id} className="qm-th-cand">
                                 <div className="qm-cand-id mono">
@@ -592,12 +594,12 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
                                           <span className="qm-cell-actions">
                                             <button
                                               className="qm-cell-btn"
-                                              title="View system run"
+                                              title={t('common.viewRun')}
                                               onClick={() => handleViewRun(node.meta.candidate_id, dataId)}
                                             >▶</button>
                                             <button
                                               className="qm-cell-btn"
-                                              title="View context"
+                                              title={t('common.viewContext')}
                                               onClick={() => handleViewContext(node.meta.candidate_id, dataId)}
                                             >⋯</button>
                                           </span>
@@ -615,7 +617,7 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
                   )}
 
                   {!isLoading && dataIds.length === 0 && (
-                    <div className="lc-empty">No batch run data available.</div>
+                    <div className="lc-empty">{t('mara.noBatchData')}</div>
                   )}
                 </div>
               )}
@@ -628,12 +630,12 @@ export const LineageCompare: React.FC<LineageCompareProps> = ({ candidates, onSe
       <div className="mc-pagination">
         {showCount > DEFAULT_SHOW && (
           <button className="mc-show-more" onClick={() => setShowCount(DEFAULT_SHOW)}>
-            Show less
+            {t('mara.showLess')}
           </button>
         )}
         {filteredChains.length > showCount && (
           <button className="mc-show-more" onClick={() => setShowCount(prev => prev + 10)}>
-            Show more ({filteredChains.length - showCount} remaining)
+            {t('mara.showMore', { n: filteredChains.length - showCount })}
           </button>
         )}
       </div>

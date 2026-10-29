@@ -28,6 +28,22 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+.lang-switcher {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px 10px;
+  color: #ccc;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lang-switcher:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .workspace-selector .label {
   color: #ccc;
   font-size: 0.9rem;

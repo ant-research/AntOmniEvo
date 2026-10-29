@@ -6,6 +6,7 @@ import { LineageTreeTab } from '../components/dashboard/lineage/LineageTreeTab';
 import { StatsTab } from '../components/dashboard/stats/StatsTab';
 import { InsightsTab } from '../components/dashboard/insights/InsightsTab';
 import { LegendTab } from '../components/dashboard/LegendTab';
+import { useTranslation } from '../i18n';
 import './Dashboard.css';
 
 interface DashboardProps {
@@ -21,6 +22,7 @@ function getInitialTab(): TabKey {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ workspacePath }) => {
+  const { t } = useTranslation();
   const [activeTab, _setActiveTab] = useState<TabKey>(getInitialTab);
   const setActiveTab = useCallback((tab: TabKey) => {
     _setActiveTab(tab);
@@ -43,7 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspacePath }) => {
   if (loading) {
     return (
       <div className="dashboard loading">
-        <div className="loading-spinner">Loading...</div>
+        <div className="loading-spinner">{t('dashboard.loading')}</div>
       </div>
     );
   }
@@ -52,9 +54,9 @@ const Dashboard: React.FC<DashboardProps> = ({ workspacePath }) => {
     return (
       <div className="dashboard error">
         <div className="error-message">
-          <h2>❌ Error</h2>
+          <h2>{t('dashboard.errorTitle')}</h2>
           <p>{error}</p>
-          <p className="hint">Make sure the API server is running: python api/server.py</p>
+          <p className="hint">{t('dashboard.errorHint')}</p>
         </div>
       </div>
     );
@@ -63,7 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspacePath }) => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>🦞 Lobster Gym</h1>
+        <h1>{t('dashboard.title')}</h1>
         <div className="workspace-info"></div>
       </div>
 
@@ -72,31 +74,31 @@ const Dashboard: React.FC<DashboardProps> = ({ workspacePath }) => {
           className={`tab-btn ${activeTab === 'evolution' ? 'active' : ''}`}
           onClick={() => setActiveTab('evolution')}
         >
-          🦞 Evolution ({candidateWithChange.length})
+          {t('tabs.evolution')} ({candidateWithChange.length})
         </button>
         <button
           className={`tab-btn ${activeTab === 'tree' ? 'active' : ''}`}
           onClick={() => setActiveTab('tree')}
         >
-          🧬 Lineage Tree
+          {t('tabs.tree')}
         </button>
         <button
           className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
           onClick={() => setActiveTab('stats')}
         >
-          📊 Stats
+          {t('tabs.stats')}
         </button>
         <button
           className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
           onClick={() => setActiveTab('insights')}
         >
-          🔍 Insights
+          {t('tabs.insights')}
         </button>
         <button
           className={`tab-btn ${activeTab === 'legend' ? 'active' : ''}`}
           onClick={() => setActiveTab('legend')}
         >
-          🏅 Legend
+          {t('tabs.legend')}
         </button>
       </div>
 

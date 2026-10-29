@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CandidateWithChange } from '../types';
+import { useTranslation } from '../../../i18n';
 
 interface TreeNodeProps {
   nodeId: string;
@@ -24,6 +25,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
   onToggle,
   highlightId,
 }) => {
+  const { t } = useTranslation();
   const expanded = expandedSet.has(nodeId);
   const candidate = candidateMap.get(nodeId);
   const children = (parentMap.get(nodeId) || []).slice().sort((a, b) => {
@@ -56,8 +58,8 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
             e.stopPropagation();
             if (hasChildren) onToggle(nodeId, e.shiftKey);
           }}
-          title={hasChildren ? (expanded ? 'Collapse (shift+click: whole subtree)' : 'Expand (shift+click: whole subtree)') : ''}
-          aria-label={expanded ? 'Collapse' : 'Expand'}
+          title={hasChildren ? (expanded ? t('lineage.collapseSubtree') : t('lineage.expandSubtree')) : ''}
+          aria-label={expanded ? t('lineage.collapse') : t('lineage.expand')}
         >
           {hasChildren ? (expanded ? '▾' : '▸') : '·'}
         </button>
@@ -72,7 +74,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           {changePercent >= 0 ? '↑' : '↓'}{Math.abs(changePercent).toFixed(2)}pp
         </span>
         <span className="tree-node-level-badge" style={{ background: level.color }}>
-          {level.emoji} {level.label}
+          {level.emoji} {t(`tiers.T${level.level}`)}
         </span>
         {hasChildren && (
           <span className="tree-node-children-count">{children.length}</span>
