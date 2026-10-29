@@ -3,6 +3,7 @@ import type { Candidate, Statistics } from '../../../types';
 import { ScoreHistoryChart } from './ScoreHistoryChart';
 import { CandidateListCard } from './CandidateListCard';
 import { TokenUsageCard } from './TokenUsageCard';
+import { useTranslation } from '../../../i18n';
 
 interface StatsTabProps {
   candidates: Candidate[];
@@ -41,68 +42,69 @@ function fmtDuration(sec: number | null | undefined): string {
 }
 
 export const StatsTab: React.FC<StatsTabProps> = ({ candidates, statistics, rootScore }) => {
+  const { t } = useTranslation();
   const maxScore = candidates.length > 0
     ? Math.max(...candidates.map(c => c.summary.avg_score))
     : 0;
 
   return (
     <div className="stats-tab">
-      <h3>📊 Statistics</h3>
+      <h3>{t('stats.title')}</h3>
       {statistics?.iteration_record_list && statistics.iteration_record_list.length > 0 && (
         <ScoreHistoryChart statistics={statistics} />
       )}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-label">Iteration</div>
+          <div className="stat-label">{t('stats.iteration')}</div>
           <div className="stat-value">
             {statistics?.current_iteration ?? '—'}
             {statistics?.max_iterations ? <span className="stat-sub"> / {statistics.max_iterations}</span> : ''}
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Population Size</div>
+          <div className="stat-label">{t('stats.populationSize')}</div>
           <div className="stat-value">{statistics?.current_population_size ?? '—'}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Total Created</div>
+          <div className="stat-label">{t('stats.totalCreated')}</div>
           <div className="stat-value">{statistics?.total_candidates_created ?? candidates.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Rejected</div>
+          <div className="stat-label">{t('stats.rejected')}</div>
           <div className="stat-value">{statistics?.rejected_count ?? '—'}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Best Score</div>
+          <div className="stat-label">{t('stats.bestScore')}</div>
           <div className="stat-value highlight">{maxScore.toFixed(4)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Baseline</div>
+          <div className="stat-label">{t('stats.baseline')}</div>
           <div className="stat-value">{rootScore.toFixed(4)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Root ID</div>
+          <div className="stat-label">{t('stats.rootId')}</div>
           <div className="stat-value small">{statistics?.root_candidate_id?.slice(0, 8) || 'N/A'}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Best ID</div>
+          <div className="stat-label">{t('stats.bestId')}</div>
           <div className="stat-value small">{statistics?.best_candidate_id?.slice(0, 8) || 'N/A'}</div>
         </div>
         <div className="stat-row">
           <div className="stat-card">
-            <div className="stat-label">Start Time</div>
+            <div className="stat-label">{t('stats.startTime')}</div>
             <div className="stat-value small mono">{fmtDateTime(statistics?.start_time)}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Last Updated</div>
+            <div className="stat-label">{t('stats.lastUpdated')}</div>
             <div className="stat-value small mono">{fmtDateTime(statistics?.last_updated_at)}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Total Duration</div>
+            <div className="stat-label">{t('stats.totalDuration')}</div>
             <div className="stat-value small mono">{fmtDuration(statistics?.total_duration_seconds)}</div>
           </div>
         </div>
         <CandidateListCard
-          label="Available Candidates"
+          label={t('stats.availableCandidates')}
           candidates={candidates.filter(c => c.meta.state !== 'unavailable')}
           rootScore={rootScore}
         />

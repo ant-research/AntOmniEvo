@@ -5,6 +5,7 @@ import { DetailPanel } from '../DetailPanel';
 import { AncestorChain } from './AncestorChain';
 import { TreeNode } from './TreeNode';
 import type { CandidateWithChange } from '../types';
+import { useTranslation } from '../../../i18n';
 
 interface LineageTreeTabProps {
   candidates: CandidateWithChange[];
@@ -17,6 +18,7 @@ export const LineageTreeTab: React.FC<LineageTreeTabProps> = ({
   statistics,
   rootScore,
 }) => {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, any> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -171,7 +173,7 @@ export const LineageTreeTab: React.FC<LineageTreeTabProps> = ({
   if (candidates.length === 0) {
     return (
       <div className="lineage-tab empty">
-        <p>No candidates found</p>
+        <p>{t('lineage.noCandidates')}</p>
       </div>
     );
   }
@@ -181,10 +183,10 @@ export const LineageTreeTab: React.FC<LineageTreeTabProps> = ({
   return (
     <div className="lineage-tab">
       <div className="lineage-header">
-        <h3>🧬 Lineage Tree</h3>
+        <h3>{t('tabs.tree')}</h3>
         <span className="lineage-summary">
-          {candidates.length} candidates · root score {rootScore.toFixed(4)}
-          <span className="lineage-hint"> · shift+click ▸ to expand subtree</span>
+          {t('lineage.summary', { n: candidates.length, score: rootScore.toFixed(4) })}
+          <span className="lineage-hint">{t('lineage.hint')}</span>
         </span>
         <div className="lineage-search">
           <input
@@ -192,21 +194,21 @@ export const LineageTreeTab: React.FC<LineageTreeTabProps> = ({
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="🔍 search candidate id (Enter to select)"
+            placeholder={t('lineage.searchPlaceholder')}
             className="lineage-search-input"
           />
           {search && (
             <span className="lineage-search-meta">
               {matches.length === 0
-                ? 'no match'
+                ? t('lineage.noMatch')
                 : `${Math.min(activeMatchIdx, matches.length - 1) + 1} / ${matches.length}`}
               {matches.length > 1 && (
                 <>
-                  <button className="lineage-search-step" onClick={() => stepMatch(-1)} title="Previous (shift+enter)">↑</button>
-                  <button className="lineage-search-step" onClick={() => stepMatch(1)} title="Next (enter)">↓</button>
+                  <button className="lineage-search-step" onClick={() => stepMatch(-1)} title={t('lineage.prev')}>↑</button>
+                  <button className="lineage-search-step" onClick={() => stepMatch(1)} title={t('lineage.next')}>↓</button>
                 </>
               )}
-              <button className="lineage-search-clear" onClick={() => { setSearch(''); setHighlightId(null); }} title="Clear (esc)">✕</button>
+              <button className="lineage-search-clear" onClick={() => { setSearch(''); setHighlightId(null); }} title={t('lineage.clear')}>✕</button>
             </span>
           )}
         </div>
@@ -246,7 +248,7 @@ export const LineageTreeTab: React.FC<LineageTreeTabProps> = ({
           ) : (
             <div className="detail-placeholder">
               <span className="detail-placeholder-icon">👈</span>
-              <p>Click a node to view details</p>
+              <p>{t('lineage.clickToView')}</p>
             </div>
           )}
         </div>

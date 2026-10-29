@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { Candidate } from '../../../types';
 import { calculateChangePercent, getEvolutionLevel } from '../../../utils/evolutionLevel';
 import { openCandidateDirectory } from '../../../utils/api';
+import { useTranslation } from '../../../i18n';
 
 // State dot colors matching lineage tree
 const STATE_COLORS: Record<string, string> = {
@@ -20,6 +21,7 @@ export const CandidateListCard: React.FC<CandidateListCardProps> = ({
   candidates,
   rootScore,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const sorted = useMemo(
@@ -45,7 +47,7 @@ export const CandidateListCard: React.FC<CandidateListCardProps> = ({
             return (
               <div key={c.meta.candidate_id} className="candidate-list-row">
                 <span className="candidate-list-dot" style={{ background: stateColor }} />
-                <span className="candidate-list-state-label" style={{ color: stateColor }}>{c.meta.state}</span>
+                <span className="candidate-list-state-label" style={{ color: stateColor }}>{t(`state.${c.meta.state}`)}</span>
                 <span className="candidate-list-id mono">{c.meta.candidate_id.slice(0, 8)}</span>
                 <span className="candidate-list-gen">G{c.meta.generation || 0}</span>
                 <span className="candidate-list-score">{c.summary.avg_score.toFixed(4)}</span>
@@ -53,11 +55,11 @@ export const CandidateListCard: React.FC<CandidateListCardProps> = ({
                   {pct >= 0 ? '+' : ''}{pct.toFixed(2)} pp
                 </span>
                 <span className="candidate-list-state-badge" style={{ background: lvl.color }}>
-                  {lvl.emoji} {lvl.label}
+                  {lvl.emoji} {t(`tiers.T${lvl.level}`)}
                 </span>
                 <button
                   className="candidate-list-open-dir"
-                  title="Open candidate directory"
+                  title={t('detail.openDir')}
                   onClick={(e) => {
                     e.stopPropagation();
                     openCandidateDirectory(c.meta.candidate_id).catch(err =>

@@ -4,6 +4,7 @@ import { LOBSTER_TIERS } from '../../utils/lobsterTier';
 import { GYM_TIERS } from '../../utils/gymTier';
 import { LOBSTER_SPRITES } from '../../utils/spriteRegistry';
 import { GymRenderer } from './GymRenderer';
+import { useTranslation } from '../../i18n';
 
 const formatRange = (minChange: number, maxChange: number): string => {
   if (maxChange === Infinity) return `≥ +${minChange} pp`;
@@ -25,16 +26,14 @@ const ANIM_SIZE: Record<LobsterTierId, number> = {
   T8: 310, T9: 480,
 };
 
-export const LegendTab: React.FC = () => (
+export const LegendTab: React.FC = () => {
+  const { t } = useTranslation();
+  return (
   <div className="legend-tab">
     {/* ── Lobster Tiers ────────────────────────────────────── */}
     <div className="legend-tab-intro">
-      <h2>Lobster Tiers</h2>
-      <p>
-        Each candidate's tier is determined by its <strong>score change (percentage points)</strong> versus
-        the root baseline. Tiers step every 5 pp, from T0 (Weakling) to T9 (Dragon Lord).
-        Higher tiers unlock accessories, poses, and aura effects.
-      </p>
+      <h2>{t('legend.lobsterTiers')}</h2>
+      <p>{t('legend.tiersIntro')}</p>
     </div>
 
     <div className="legend-lobster-grid">
@@ -54,7 +53,7 @@ export const LegendTab: React.FC = () => (
             </div>
             <div className="legend-lobster-badge">
               <span className="legend-lobster-id">{tier.id}</span>
-              <span className="legend-lobster-name">{tier.name}</span>
+              <span className="legend-lobster-name">{t(`tiers.${tier.id}`)}</span>
               <span className="legend-lobster-emoji">{tier.emoji}</span>
               <span className="legend-lobster-range">{formatRange(tier.minChange, tier.maxChange)}</span>
             </div>
@@ -65,10 +64,8 @@ export const LegendTab: React.FC = () => (
 
     {/* ── Evolving Animations ─────────────────────────────── */}
     <div className="legend-tab-intro" style={{ marginTop: 32 }}>
-      <h2>Training Animations</h2>
-      <p>
-        Each tier has a unique training animation. Higher tiers perform more impressive exercises.
-      </p>
+      <h2>{t('legend.trainingAnimations')}</h2>
+      <p>{t('legend.animationsIntro')}</p>
     </div>
 
     <div className="legend-lobster-grid" style={{ justifyContent: 'center' }}>
@@ -100,11 +97,8 @@ export const LegendTab: React.FC = () => (
 
     {/* ── Gym Rooms ───────────────────────────────────────── */}
     <div className="legend-tab-intro" style={{ marginTop: 32 }}>
-      <h2>Gym Rooms</h2>
-      <p>
-        Lobsters are grouped into <strong>6 gym rooms</strong> by the same metric, bucketed every 10 pp.
-        Each room has a unique backdrop and atmosphere. Rooms with no occupants are hidden.
-      </p>
+      <h2>{t('legend.gymRooms')}</h2>
+      <p>{t('legend.gymIntro')}</p>
     </div>
 
     <div className="legend-gym-grid">
@@ -115,8 +109,8 @@ export const LegendTab: React.FC = () => (
           </div>
           <div className="legend-gym-overlay">
             <div className="legend-gym-banner">{room.banner}</div>
-            <div className="legend-gym-name">{room.name}</div>
-            <div className="legend-gym-tagline">{room.tagline}</div>
+            <div className="legend-gym-name">{t(`gym.${room.id}.name`)}</div>
+            <div className="legend-gym-tagline">{t(`gym.${room.id}.tagline`)}</div>
             <div className="legend-gym-id">{room.id}</div>
             <div className="legend-gym-range">{formatRange(room.minChange, room.maxChange)}</div>
           </div>
@@ -124,4 +118,5 @@ export const LegendTab: React.FC = () => (
       ))}
     </div>
   </div>
-);
+  );
+};

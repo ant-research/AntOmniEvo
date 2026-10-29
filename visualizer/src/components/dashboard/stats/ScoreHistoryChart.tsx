@@ -11,6 +11,7 @@ import {
   Scatter,
 } from 'recharts';
 import type { Statistics } from '../../../types';
+import { useTranslation } from '../../../i18n';
 
 interface ChartPoint {
   iteration: number;
@@ -25,6 +26,7 @@ interface ChartPoint {
 }
 
 export const ScoreHistoryChart: React.FC<{ statistics: Statistics }> = ({ statistics }) => {
+  const { t } = useTranslation();
   const { iteration_record_list, baseline_avg_score } = statistics;
 
   // Build chart data from iteration_record_list ordered by iteration number.
@@ -104,21 +106,21 @@ export const ScoreHistoryChart: React.FC<{ statistics: Statistics }> = ({ statis
     <div className="score-history-chart">
       <div className="chart-legend">
         <span className="chart-legend-item">
-          <span className="chart-legend-line best" /> Best Avg Score
+          <span className="chart-legend-line best" /> {t('chart.bestAvgScore')}
         </span>
         {hasAccepted && (
           <span className="chart-legend-item">
-            <span className="chart-legend-dot accepted" /> Accepted
+            <span className="chart-legend-dot accepted" /> {t('chart.accepted')}
           </span>
         )}
         {hasRejected && (
           <span className="chart-legend-item">
-            <span className="chart-legend-dot rejected" /> Rejected
+            <span className="chart-legend-dot rejected" /> {t('chart.rejected')}
           </span>
         )}
         {baseline_avg_score != null && (
           <span className="chart-legend-item">
-            <span className="chart-legend-line baseline" /> Baseline
+            <span className="chart-legend-line baseline" /> {t('chart.baseline')}
           </span>
         )}
       </div>
@@ -131,7 +133,7 @@ export const ScoreHistoryChart: React.FC<{ statistics: Statistics }> = ({ statis
             domain={[0, lastIter]}
             ticks={xTicks}
             tick={{ fill: '#aaa', fontSize: 11 }}
-            label={{ value: 'Iteration', position: 'insideBottomRight', offset: -4, fill: '#888', fontSize: 11 }}
+            label={{ value: t('chart.iterationAxis'), position: 'insideBottomRight', offset: -4, fill: '#888', fontSize: 11 }}
             allowDecimals={false}
           />
           <YAxis
@@ -154,9 +156,9 @@ export const ScoreHistoryChart: React.FC<{ statistics: Statistics }> = ({ statis
                 }
               }
               const labelMap: Record<string, string> = {
-                bestScore: 'Best Score',
-                acceptedScore: 'Accepted',
-                rejectedScore: 'Rejected',
+                bestScore: t('chart.bestScore'),
+                acceptedScore: t('chart.accepted'),
+                rejectedScore: t('chart.rejected'),
               };
               const items = payload
                 .filter((p: any) => p.value != null && p.dataKey !== 'iteration')
@@ -170,11 +172,11 @@ export const ScoreHistoryChart: React.FC<{ statistics: Statistics }> = ({ statis
               const cid = payload[0]?.payload?.candidateId;
               return (
                 <div style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontSize: 12, padding: '8px 10px', color: '#fff' }}>
-                  <div style={{ color: '#FFD700', marginBottom: 4 }}>{`Iteration ${iter}`}</div>
+                  <div style={{ color: '#FFD700', marginBottom: 4 }}>{t('chart.iteration', { n: iter })}</div>
                   {items.map((it: any) => (
                     <div key={it.key} style={{ color: it.color }}>{`${it.name} : ${it.value}`}</div>
                   ))}
-                  {durStr && <div style={{ color: '#aaa' }}>{`Duration : ${durStr}`}</div>}
+                  {durStr && <div style={{ color: '#aaa' }}>{`${t('chart.duration')} : ${durStr}`}</div>}
                   {cid && (
                     <div style={{ color: '#60a5fa', marginTop: 4 }}>
                       {`ID: ${cid}`}

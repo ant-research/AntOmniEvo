@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { CandidateWithChange } from '../types';
+import { useTranslation } from '../../../i18n';
 
 interface AncestorChainProps {
   candidateId: string;
@@ -12,6 +13,7 @@ export const AncestorChain: React.FC<AncestorChainProps> = ({
   candidateMap,
   onNavigate,
 }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const chain = useMemo(() => {
@@ -35,7 +37,7 @@ export const AncestorChain: React.FC<AncestorChainProps> = ({
         onClick={() => setExpanded(!expanded)}
       >
         <span className="ancestor-chain-icon">{expanded ? '▾' : '▸'}</span>
-        Ancestors ({chain.length - 1})
+        {t('ancestors.title', { n: chain.length - 1 })}
       </button>
       {expanded && (
         <div className="ancestor-chain-list">

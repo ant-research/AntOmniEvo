@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './pages/Dashboard';
 import { browseDirectory, getWorkspaceConfig, type BrowseResult } from './utils/api';
+import { LanguageSwitcher, useTranslation } from './i18n';
 
 function DirectoryBrowser({
   onSelect,
@@ -11,6 +12,7 @@ function DirectoryBrowser({
   onCancel: () => void;
   initialPath: string;
 }) {
+  const { t } = useTranslation();
   const [browse, setBrowse] = useState<BrowseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +58,12 @@ function DirectoryBrowser({
     <div className="dir-browser-overlay" onClick={onCancel}>
       <div className="dir-browser" onClick={(e) => e.stopPropagation()}>
         <div className="dir-browser-header">
-          <span className="dir-browser-title">Select Workspace Directory</span>
+          <span className="dir-browser-title">{t('app.selectDir')}</span>
           <button className="dir-browser-close" onClick={onCancel}>✕</button>
         </div>
         {error && <div className="dir-browser-error">{error}</div>}
         {!browse ? (
-          <div className="dir-browser-loading">Loading…</div>
+          <div className="dir-browser-loading">{t('common.loading')}</div>
         ) : (
           <>
             <div className="dir-browser-current mono">
@@ -70,7 +72,7 @@ function DirectoryBrowser({
                 className="dir-browser-select-btn"
                 onClick={() => onSelect(browse.path)}
               >
-                Select This
+                {t('app.selectThis')}
               </button>
             </div>
             <div className="dir-browser-list">
@@ -82,7 +84,7 @@ function DirectoryBrowser({
                   📁 ..
                 </div>
               )}
-              {loading && <div className="dir-browser-loading">Loading…</div>}
+              {loading && <div className="dir-browser-loading">{t('common.loading')}</div>}
               {!loading && browse.dirs.map((name) => (
                 <div
                   key={name}
@@ -93,7 +95,7 @@ function DirectoryBrowser({
                 </div>
               ))}
               {!loading && browse.dirs.length === 0 && (
-                <div className="dir-browser-empty">No subdirectories</div>
+                <div className="dir-browser-empty">{t('app.noSubdirs')}</div>
               )}
             </div>
           </>
@@ -104,6 +106,7 @@ function DirectoryBrowser({
 }
 
 function App() {
+  const { t } = useTranslation();
   const [workspacePath, setWorkspacePath] = useState<string>('');
   const [inputValue, setInputValue] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
@@ -167,12 +170,12 @@ function App() {
   return (
     <div className="app">
       <div className="workspace-selector">
-        <span className="label">Workspace:</span>
+        <span className="label">{t('app.workspace')}</span>
         {!isEditing ? (
           <button
             className="workspace-path"
             onClick={() => setIsEditing(true)}
-            title="Click to edit"
+            title={t('app.clickToEdit')}
           >
             {workspacePath}
           </button>
@@ -182,14 +185,14 @@ function App() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Enter workspace path"
+              placeholder={t('app.enterWorkspacePath')}
               autoFocus
               className="workspace-input"
             />
             <button type="button" className="btn-browse" onClick={() => setShowBrowser(true)}>
-              Browse
+              {t('app.browse')}
             </button>
-            <button type="submit" className="btn-confirm">Confirm</button>
+            <button type="submit" className="btn-confirm">{t('app.confirm')}</button>
             <button
               type="button"
               onClick={() => {
@@ -199,10 +202,11 @@ function App() {
               }}
               className="btn-cancel"
             >
-              Cancel
+              {t('app.cancel')}
             </button>
           </form>
         )}
+        <LanguageSwitcher />
       </div>
       {showBrowser && (
         <DirectoryBrowser
@@ -215,8 +219,7 @@ function App() {
         <Dashboard workspacePath={workspacePath} />
       ) : (
         <div className="loading">
-          Pick the workspace directory of an optimization run (its workspace_dir)
-          to inspect it — enter the path above or use Browse.
+          {t('app.pickWorkspace')}
         </div>
       )}
     </div>

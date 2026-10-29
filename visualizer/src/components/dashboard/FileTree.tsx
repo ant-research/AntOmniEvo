@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from '../../i18n';
 
 interface FileTreeProps {
   /** Absolute file paths to display. */
@@ -108,9 +109,10 @@ const TreeRow: React.FC<{
 };
 
 export const FileTree: React.FC<FileTreeProps> = ({ files, root, defaultOpenDepth = 1, onFileClick }) => {
+  const { t } = useTranslation();
   const tree = useMemo(() => buildTree(files, root), [files, root]);
   if (tree.length === 0) {
-    return <div className="artifact-tree-empty">(no files)</div>;
+    return <div className="artifact-tree-empty">{t('fileTree.noFiles')}</div>;
   }
   return (
     <div className="artifact-tree">

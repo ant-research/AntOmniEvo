@@ -8,6 +8,7 @@ import { getLobsterTier } from '../../utils/lobsterTier';
 import { LobsterRenderer } from './LobsterRenderer';
 import { lobsterSprite } from '../../utils/spriteRegistry';
 import { GymRenderer } from './GymRenderer';
+import { useTranslation } from '../../i18n';
 
 interface EvolutionTabProps {
   candidates: CandidateWithChange[];
@@ -15,6 +16,7 @@ interface EvolutionTabProps {
 }
 
 export const EvolutionTab: React.FC<EvolutionTabProps> = ({ candidates, rootScore }) => {
+  const { t } = useTranslation();
   const [collapsedRooms, setCollapsedRooms] = useState<Set<string>>(() => new Set(['graveyard']));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, any> | null>(null);
@@ -85,7 +87,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = ({ candidates, rootScor
   if (candidates.length === 0) {
     return (
       <div className="evolution-tab empty">
-        <p>No candidates found</p>
+        <p>{t('evolution.noCandidates')}</p>
       </div>
     );
   }
@@ -114,8 +116,8 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = ({ candidates, rootScor
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggleRoom(roomKey); }}
             >
               <span className="gym-room-banner">{tier.banner}</span>
-              <span className="gym-room-title">{tier.name}</span>
-              <span className="gym-room-tagline">{tier.tagline}</span>
+              <span className="gym-room-title">{t(`gym.${tier.id}.name`)}</span>
+              <span className="gym-room-tagline">{t(`gym.${tier.id}.tagline`)}</span>
               <span className="gym-room-count">{list.length}</span>
               <span className={`room-toggle-arrow ${isCollapsed ? '' : 'open'}`}>▾</span>
             </header>
@@ -145,7 +147,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = ({ candidates, rootScor
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggleRoom('graveyard'); }}
           >
             <span className="gym-room-banner">🪦</span>
-            <span className="gym-room-title">Graveyard</span>
+            <span className="gym-room-title">{t('evolution.graveyard')}</span>
             <span className="gym-room-count">{dead.length}</span>
             <span className={`room-toggle-arrow ${collapsedRooms.has('graveyard') ? '' : 'open'}`}>▾</span>
           </header>
@@ -194,6 +196,7 @@ interface LobsterCardProps {
 }
 
 const LobsterCard: React.FC<LobsterCardProps> = ({ candidate: c, buried, selected, onSelect }) => {
+  const { t } = useTranslation();
   const lobster = useMemo(() => getLobsterTier(c.changePercent), [c.changePercent]);
   const state: 'pending' | 'evolving' | 'unavailable' =
     c.meta.state === 'evolving' || c.meta.state === 'unavailable' ? c.meta.state : 'pending';
@@ -233,7 +236,7 @@ const LobsterCard: React.FC<LobsterCardProps> = ({ candidate: c, buried, selecte
       <div className="lobster-info">
         <div className="lobster-id mono">{c.meta.candidate_id.slice(0, 8)}</div>
         <div className="lobster-generation">
-          Gen {c.meta.generation || 0} · Epoch {c.meta.epoch} · Idx {c.meta.dataset_index}
+          {t('evolution.genEpochIdx', { g: c.meta.generation || 0, e: c.meta.epoch, i: c.meta.dataset_index })}
         </div>
         <div className="lobster-score">
           <span className="score-value">{c.summary.avg_score.toFixed(4)}</span>
@@ -243,13 +246,13 @@ const LobsterCard: React.FC<LobsterCardProps> = ({ candidate: c, buried, selecte
         </div>
         <div className="lobster-level">
           <span className="level-badge" style={{ background: lobster.bodyColor, borderColor: lobster.outlineColor }}>
-            {lobster.id} · {lobster.name}
+            {lobster.id} · {t(`tiers.${lobster.id}`)}
           </span>
           {!buried && (
             <span className={`state-chip state-chip-${state}`}>
-              {state === 'evolving' && '⚡ evolving'}
-              {state === 'pending' && '⏳ pending'}
-              {state === 'unavailable' && '— inactive'}
+              {state === 'evolving' && t('evolution.stateEvolving')}
+              {state === 'pending' && t('evolution.statePending')}
+              {state === 'unavailable' && t('evolution.stateInactive')}
             </span>
           )}
         </div>

@@ -13,6 +13,7 @@ import plaintext from 'highlight.js/lib/languages/plaintext';
 import { marked } from 'marked';
 import 'highlight.js/styles/atom-one-dark.css';
 import { getFileContent, type FileContent } from '../../utils/api';
+import { useTranslation } from '../../i18n';
 
 // Register only the languages we actually serve — keeps the bundle lean.
 hljs.registerLanguage('python', python);
@@ -92,6 +93,7 @@ interface FileViewerProps {
 type RenderMode = 'code' | 'markdown';
 
 export const FileViewer: React.FC<FileViewerProps> = ({ path, inlineContent, inlineTitle, onClose }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<FileContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,17 +173,17 @@ export const FileViewer: React.FC<FileViewerProps> = ({ path, inlineContent, inl
         <div className="file-viewer-modal" onClick={e => e.stopPropagation()}>
           <div className="file-viewer-header">
             <div className="file-viewer-title">
-              <span className="file-viewer-name mono">{inlineTitle ?? 'Context'}</span>
+              <span className="file-viewer-name mono">{inlineTitle ?? t('fileViewer.context')}</span>
             </div>
             <div className="file-viewer-actions">
               <button
                 className={`file-viewer-copy ${copyStatus !== 'idle' ? `file-viewer-copy-${copyStatus}` : ''}`}
                 onClick={() => handleCopy(inlineContent)}
-                title="Copy to clipboard"
+                title={t('fileViewer.copyTitle')}
               >
-                {copyStatus === 'success' ? '✓ Copied' : copyStatus === 'fail' ? '✗ Failed' : '📋 Copy'}
+                {copyStatus === 'success' ? t('fileViewer.copied') : copyStatus === 'fail' ? t('fileViewer.copyFailed') : t('fileViewer.copy')}
               </button>
-              <button className="file-viewer-close" onClick={onClose} aria-label="Close">✕</button>
+              <button className="file-viewer-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
             </div>
           </div>
           <div className="file-viewer-body">
@@ -207,7 +209,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({ path, inlineContent, inl
             {file && (
               <span className="file-viewer-meta">
                 {lang} · {formatBytes(file.size)}
-                {file.truncated && <span className="file-viewer-warn"> · truncated</span>}
+                {file.truncated && <span className="file-viewer-warn"> · {t('fileViewer.truncated')}</span>}
               </span>
             )}
           </div>
@@ -216,30 +218,30 @@ export const FileViewer: React.FC<FileViewerProps> = ({ path, inlineContent, inl
               <button
                 className={`file-viewer-mode ${mode === 'markdown' ? 'active' : ''}`}
                 onClick={() => setMode(m => m === 'markdown' ? 'code' : 'markdown')}
-                title="Toggle markdown rendering"
+                title={t('fileViewer.toggleMarkdown')}
               >
-                {mode === 'markdown' ? '⟨/⟩ source' : '📖 rendered'}
+                {mode === 'markdown' ? t('fileViewer.source') : t('fileViewer.rendered')}
               </button>
             )}
             {file?.content != null && (
               <button
                 className={`file-viewer-copy ${copyStatus !== 'idle' ? `file-viewer-copy-${copyStatus}` : ''}`}
                 onClick={() => handleCopy(file.content!)}
-                title="Copy to clipboard"
+                title={t('fileViewer.copyTitle')}
               >
-                {copyStatus === 'success' ? '✓ Copied' : copyStatus === 'fail' ? '✗ Failed' : '📋 Copy'}
+                {copyStatus === 'success' ? t('fileViewer.copied') : copyStatus === 'fail' ? t('fileViewer.copyFailed') : t('fileViewer.copy')}
               </button>
             )}
-            <button className="file-viewer-close" onClick={onClose} aria-label="Close">✕</button>
+            <button className="file-viewer-close" onClick={onClose} aria-label={t('common.close')}>✕</button>
           </div>
         </div>
         <div className="file-viewer-path mono" title={path}>{path}</div>
 
         <div className="file-viewer-body">
-          {loading && <div className="file-viewer-loading">Loading…</div>}
+          {loading && <div className="file-viewer-loading">{t('fileViewer.loading')}</div>}
           {error && <div className="file-viewer-error">{error}</div>}
           {!loading && !error && file && file.binary && (
-            <div className="file-viewer-binary">Binary file — preview unavailable.</div>
+            <div className="file-viewer-binary">{t('fileViewer.binary')}</div>
           )}
           {!loading && !error && file && !file.binary && mode === 'code' && (
             <div className="file-viewer-code-container">

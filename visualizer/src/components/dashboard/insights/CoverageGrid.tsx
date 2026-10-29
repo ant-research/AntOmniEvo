@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import type { Candidate } from '../../../types';
 import { getCandidateDetail } from '../../../utils/api';
 import { FileViewer } from '../FileViewer';
+import { useTranslation } from '../../../i18n';
 
 interface CoverageGridProps {
   candidates: Candidate[];
@@ -15,6 +16,7 @@ interface QuestionRow {
 }
 
 export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelectCandidate }) => {
+  const { t } = useTranslation();
   const [viewingFile, setViewingFile] = useState<string | null>(null);
   const [contextContent, setContextContent] = useState<string | null>(null);
   const [contextTitle, setContextTitle] = useState<string>('');
@@ -49,14 +51,14 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
     if (!trimmed) return;
     const match = candidates.find(c => c.meta.candidate_id.startsWith(trimmed));
     if (!match) {
-      setAddError(`Candidate "${trimmed}" not found`);
+      setAddError(t('coverage.notFound', { id: trimmed }));
       return;
     }
     const fullId = match.meta.candidate_id;
     setAddError(null);
     setCompareIds(prev => prev.includes(fullId) ? prev : [...prev, fullId]);
     setAddInput('');
-  }, [candidates]);
+  }, [candidates, t]);
 
   const handleRemove = useCallback((id: string) => {
     setCompareIds(prev => prev.filter(x => x !== id));
@@ -98,7 +100,7 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
       if (files.length > 0) {
         setViewingFile(files[files.length - 1]);
       } else {
-        setContextContent(`No system run file found for candidate ${candidateId.slice(0, 8)} on data ${dataId}.\n\nThis candidate was evaluated before run recording was enabled.`);
+        setContextContent(t('coverage.noRunFile', { id: candidateId.slice(0, 8), dataId }));
         setContextTitle(`${candidateId.slice(0, 8)} · ${dataId}`);
       }
     } catch (e) {
@@ -106,7 +108,7 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
     } finally {
       setLoadingCell(null);
     }
-  }, []);
+  }, [t]);
 
   const handleViewContext = useCallback(async (candidateId: string, dataId: string) => {
     const cellKey = `${candidateId}:${dataId}`;
@@ -153,11 +155,11 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
             value={addInput}
             onChange={e => { setAddInput(e.target.value); setAddError(null); }}
             onKeyDown={e => { if (e.key === 'Enter') handleAdd(addInput); }}
-            placeholder="Add candidate ID (prefix ok)"
+            placeholder={t('coverage.addPlaceholder')}
           />
-          <button className="qm-selector-add-btn" onClick={() => handleAdd(addInput)}>Add</button>
+          <button className="qm-selector-add-btn" onClick={() => handleAdd(addInput)}>{t('coverage.add')}</button>
           {compareIds.length > 0 && (
-            <button className="qm-selector-reset-btn" onClick={() => setCompareIds([])}>Clear</button>
+            <button className="qm-selector-reset-btn" onClick={() => setCompareIds([])}>{t('coverage.clear')}</button>
           )}
           {addError && <span className="qm-selector-error">{addError}</span>}
         </div>
@@ -169,7 +171,7 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
                 key={id}
                 className={`qm-alive-chip ${inCompare ? 'active' : ''}`}
                 onClick={() => inCompare ? handleRemove(id) : handleAdd(id)}
-                title={inCompare ? 'Remove from comparison' : 'Add to comparison'}
+                title={inCompare ? t('coverage.remove') : t('coverage.addTo')}
               >
                 <span className="mono">{id.slice(0, 8)}</span>
                 <span className="qm-alive-chip-score">{candidateMap.get(id)?.summary.avg_score.toFixed(4)}</span>
@@ -180,21 +182,21 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
       </div>
 
       {available.length === 0 && (
-        <div className="qm-empty">Select candidates above to compare.</div>
+        <div className="qm-empty">{t('coverage.empty')}</div>
       )}
 
       {available.length > 0 && (
       <div className="qm-summary">
         <span className="qm-summary-item">
-          <strong>{rows.length}</strong> questions
+          <strong>{rows.length}</strong> {t('coverage.questions')}
         </span>
         <span className="qm-summary-sep">·</span>
         <span className="qm-summary-item qm-unsolved-count">
-          <strong>{unsolvedCount}</strong> unsolved by all
+          <strong>{unsolvedCount}</strong> {t('coverage.unsolvedByAll')}
         </span>
         <span className="qm-summary-sep">·</span>
         <span className="qm-summary-item">
-          <strong>{available.length}</strong> candidates
+          <strong>{available.length}</strong> {t('coverage.candidates')}
         </span>
       </div>
       )}
@@ -204,8 +206,8 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
           <table className="qm-table">
             <thead>
               <tr>
-                <th className="qm-th-question">Question</th>
-                <th className="qm-th-rate">Avg Score</th>
+                <th className="qm-th-question">{t('coverage.question')}</th>
+                <th className="qm-th-rate">{t('coverage.avgScore')}</th>
                 {available.map(c => (
                   <th key={c.meta.candidate_id} className="qm-th-cand" title={c.meta.candidate_id}>
                     <div className="qm-cand-id mono">
@@ -216,7 +218,7 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
                       <button
                         className="qm-th-remove"
                         onClick={() => handleRemove(c.meta.candidate_id)}
-                        title="Remove from comparison"
+                        title={t('coverage.remove')}
                       >✕</button>
                     </div>
                     <div className="qm-cand-score">{c.summary.avg_score.toFixed(2)}</div>
@@ -244,7 +246,7 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
                           {isLoading ? (
                             <span className="qm-dot qm-dot-loading">...</span>
                           ) : score === undefined ? (
-                            <span className="qm-dot qm-dot-none" title="No data">—</span>
+                            <span className="qm-dot qm-dot-none" title={t('common.noData')}>—</span>
                           ) : (
                             <span className="qm-cell-content">
                               <span
@@ -256,12 +258,12 @@ export const CoverageGrid: React.FC<CoverageGridProps> = ({ candidates, onSelect
                               <span className="qm-cell-actions">
                                 <button
                                   className="qm-cell-btn"
-                                  title="View system run"
+                                  title={t('common.viewRun')}
                                   onClick={() => handleViewRun(c.meta.candidate_id, row.dataId)}
                                 >▶</button>
                                 <button
                                   className="qm-cell-btn"
-                                  title="View analysis context"
+                                  title={t('common.viewContext')}
                                   onClick={() => handleViewContext(c.meta.candidate_id, row.dataId)}
                                 >⋯</button>
                               </span>

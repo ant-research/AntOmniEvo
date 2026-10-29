@@ -7,6 +7,7 @@ import { AncestorChain } from '../lineage/AncestorChain';
 import { CollapsibleSection } from '../CollapsibleSection';
 import { CoverageGrid } from './CoverageGrid';
 import { LineageCompare } from './MaraChains';
+import { useTranslation } from '../../../i18n';
 
 interface InsightsTabProps {
   candidates: CandidateWithChange[];
@@ -15,6 +16,7 @@ interface InsightsTabProps {
 }
 
 export const InsightsTab: React.FC<InsightsTabProps> = ({ candidates, rootScore, statistics }) => {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, any> | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -47,11 +49,11 @@ export const InsightsTab: React.FC<InsightsTabProps> = ({ candidates, rootScore,
 
   return (
     <div className="insights-tab">
-      <CollapsibleSection title="Val Coverage Grid" defaultOpen={false}>
+      <CollapsibleSection title={t('insights.coverageGrid')} defaultOpen={false}>
         <CoverageGrid candidates={candidates} onSelectCandidate={handleSelectCandidate} />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Lineage Compare" defaultOpen={false}>
+      <CollapsibleSection title={t('insights.lineageCompare')} defaultOpen={false}>
         <LineageCompare
           candidates={candidates}
           onSelectCandidate={handleSelectCandidate}
