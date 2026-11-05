@@ -1,0 +1,21 @@
+README.md
+  s_39e675d188de6b::t_84be8aff079de6 64
+README.zh-CN.md
+  s_39e675d188de6b::t_92209b28d8e092 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "12aaad8bb404b3ad32fd49ba23a3a9d8067ea35f",
+  "prompts": {},
+  "sessions": {
+    "s_39e675d188de6b": {
+      "agent_id": {
+        "tool": "antcc",
+        "id": "2c778e4d-9d1f-4003-8bc9-e43f58203060",
+        "model": "glink/Kimi-K3:glink_domestic"
+      },
+      "human_author": "断岳 <lv523954325@163.com>"
+    }
+  }
+}
