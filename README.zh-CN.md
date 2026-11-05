@@ -66,7 +66,7 @@ AntOmniEvo 是一个面向 AI agent 系统的 auto-evolution(自动进化)框架
 
 ## 🧪 论文资源
 
-论文的实验脚本、进化前后的 artifacts、数据集等正在筹备开源,后续会发布到单独的仓库,敬请期待。
+论文的实验脚本、进化前后的 artifacts、数据集等已开源至 [ant-research/AntOmniEvoDatasetsAndScripts](https://github.com/ant-research/AntOmniEvoDatasetsAndScripts)。
 
 <a id="papers"></a>
 

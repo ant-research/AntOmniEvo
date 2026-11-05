@@ -61,7 +61,7 @@ It works for any system that can be expressed as a directory of tunable files an
 
 ## 🧪 Paper Resources
 
-The paper's experiment scripts, artifacts before and after evolution, and datasets are being prepared for open source and will be released in a separate repository — stay tuned.
+The paper's experiment scripts, artifacts before and after evolution, and datasets are open-sourced at [ant-research/AntOmniEvoDatasetsAndScripts](https://github.com/ant-research/AntOmniEvoDatasetsAndScripts).
 
 <a id="papers"></a>
 
