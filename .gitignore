@@ -12,9 +12,10 @@ logs/
 CLAUDE.md
 task/
 .DS_Store
-config/
+config-local/
+antomnievo/proposer/config/pi/models.json
 
-# Visualizer (前端)
+# Visualizer
 visualizer/node_modules/
 visualizer/dist/
 visualizer/dist-ssr/
