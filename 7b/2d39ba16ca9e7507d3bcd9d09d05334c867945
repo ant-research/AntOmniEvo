@@ -1,0 +1,55 @@
+antomnievo/proposer/config/pi/extensions/block-val-system-run.ts
+  s_88b3b4f4937686::t_c36e59066119fa 1-51
+.gitignore
+  s_88b3b4f4937686::t_9de8aced3baa08 18
+  s_705b5e0f0c911f::t_c37442a94dd4ff 16
+  s_705b5e0f0c911f::t_2a860bcdd6bf56 15
+antomnievo/proposer/config/pi/README.md
+  s_705b5e0f0c911f::t_6c94aaf7efed54 1-10
+antomnievo/proposer/config/pi/settings.json
+  s_88b3b4f4937686::t_d101af50d2c4a0 1-7
+antomnievo/proposer/config/pi/extensions/enforce-changelog-cli.ts
+  s_88b3b4f4937686::t_2240b68c1a1004 1-72
+antomnievo/proposer/config/pi/auth.json
+  s_88b3b4f4937686::t_5fd689d8732bbd 1
+antomnievo/common/config/config.py
+  s_fbda32aa24d66f::t_1d8b7418cd5ced 18-20
+  s_fbda32aa24d66f::t_c5fe04b70615be 21-27
+  s_fbda32aa24d66f::t_caf638e67fc4d9 28-30
+  s_fbda32aa24d66f::t_460e65074884e3 15-17
+  s_fbda32aa24d66f::t_cdec03237aa472 31-33
+antomnievo/proposer/config/pi/models.example.json
+  s_705b5e0f0c911f::t_6e8c1f8dc12e53 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7b2d39ba16ca9e7507d3bcd9d09d05334c867945",
+  "prompts": {},
+  "sessions": {
+    "s_705b5e0f0c911f": {
+      "agent_id": {
+        "tool": "antcc",
+        "id": "398f6ad9-63fd-4a26-97af-f30de3145315",
+        "model": "glink/Kimi-K3:glink_domestic"
+      },
+      "human_author": null
+    },
+    "s_88b3b4f4937686": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_88b3b4f4937686",
+        "model": "unknown"
+      },
+      "human_author": "断岳 <lv523954325@163.com>"
+    },
+    "s_fbda32aa24d66f": {
+      "agent_id": {
+        "tool": "antcc",
+        "id": "daa4aaf8-35ca-4910-8738-0629f7464ecf",
+        "model": "glink/Kimi-K3:glink_domestic"
+      },
+      "human_author": "断岳 <lv523954325@163.com>"
+    }
+  }
+}
