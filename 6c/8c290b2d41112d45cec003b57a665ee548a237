@@ -1,0 +1,41 @@
+antomnievo/proposer/config/pi/models.json
+  s_705b5e0f0c911f::t_cbcc3bba49d03a 4
+  s_705b5e0f0c911f::t_f33fc8e6b45620 1-3
+  s_705b5e0f0c911f::t_7f78097ebdd86a 5-7
+  s_88b3b4f4937686::t_cbaef19e5bc5cb 8-30
+.gitignore
+  s_705b5e0f0c911f::t_15eba389d6a129 16
+  s_88b3b4f4937686::t_9de8aced3baa08 19
+antomnievo/proposer/config/pi/auth.json
+  s_88b3b4f4937686::t_5fd689d8732bbd 1
+antomnievo/proposer/config/pi/extensions/block-val-system-run.ts
+  s_88b3b4f4937686::t_c36e59066119fa 1-51
+antomnievo/proposer/config/pi/extensions/enforce-changelog-cli.ts
+  s_88b3b4f4937686::t_2240b68c1a1004 1-72
+antomnievo/proposer/config/pi/settings.json
+  s_88b3b4f4937686::t_d101af50d2c4a0 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6c8c290b2d41112d45cec003b57a665ee548a237",
+  "prompts": {},
+  "sessions": {
+    "s_705b5e0f0c911f": {
+      "agent_id": {
+        "tool": "antcc",
+        "id": "398f6ad9-63fd-4a26-97af-f30de3145315",
+        "model": "glink/Kimi-K3:glink_domestic"
+      },
+      "human_author": "断岳 <lv523954325@163.com>"
+    },
+    "s_88b3b4f4937686": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_88b3b4f4937686",
+        "model": "unknown"
+      },
+      "human_author": "断岳 <lv523954325@163.com>"
+    }
+  }
+}
